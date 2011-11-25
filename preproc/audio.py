@@ -8,5 +8,38 @@ something that one could feed to a hierarchy, except for sound instead.
 
 
 
+# Time-domain representations of audio, as super-long arrays of floats.
+class timeDomain(object):
+    
+    def __init__(self, filename):
+        # calls appropriate import method to get time-domain repr of
+        # input signal
+        pass
+
+    # will rely on external library
+    def importFromWAV(self, filename):
+        pass
+
+    # will rely on external library
+    def importFromMP3(self, filename):
+        pass
+
+
+
+# Frequency-domain representations of audio, built from using an FFT version of
+# the short-term Fourier transform algorithm on a time-domain representation
+# of an audio signal, over successive portions of the signal using a Hann
+# window.  Essentially creates a list of arrays, each of which is an estimate
+# of the spectral density at that point in time.
+class spectrogram(object):
+    def __init__(self, timeDomainSignal):
+        pass
+    # Runs STFT algorithm on successive chunks of the signal
+    def stftHannWindow(self, intervalSize, offset, hann=True):
+        pass
+
+    # Hann windowing mitigates aliasing
+    def hannWindow(self, signalChunk):
+        pass
 
 
