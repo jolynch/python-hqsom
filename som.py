@@ -96,25 +96,3 @@ class RSOM(SOM):
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_r_index, mse, unit_input, spread)*y_t
             self.differences[weight_index] = (1-time_decay)*self.differences[weight_index] + time_decay * (unit_input-w_t)
 
-# Some test as I go, need to do more serious unit testing
-# TODO: Write actual tests
-if __name__ == "__main__":
-    som = RSOM(3,10)
-    rate,spread,alpha = 1, 1, 1
-    test_data= [(.2,.2,.2),(0,0,.2),(.8,.8,.1),(.9,.9,.9)]
-    test_data = np.array([np.array(i) for i in test_data])
-    som.update(np.array([1,1,1,1]),rate,spread,alpha)
-    print som.units
-    index = 0
-    for j in range(400):
-        rate *= .8
-        
-        if np.random.random() > .7:
-            index = np.random.randint(0,4)
-
-        som.update(test_data[index],rate,spread,alpha)
-    print som.units
-    for t in test_data:
-        print t
-        print som.activation_vector(t )
-        print som.activation_vector(t, True)
