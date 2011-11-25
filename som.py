@@ -38,15 +38,17 @@ class SOM(object):
         if len(unit_input) != self.units.shape[1]:
             print "Input of length {0} incompatible with SOM length {1}".format(len(unit_input),self.units.shape[1])
             return
-
-        print "Updating on input: {}".format( unit_input)
         bmu_index = self.bmu(unit_input)
         bmu = self.units[bmu_index]
-        mse = (1.0/len(unit_input)) * np.linalg.norm(unit_input - bmu)**2
-        print "MSE before update: {}".format(mse)
+        mse = self.mse(unit_input)
         for weight_index in range(len(self.units)):
             w_t = self.units[weight_index]
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_index, mse, unit_input, spread)*(unit_input-w_t)
+
+    def mse(self, unit_input):
+        bmu = self.units[self.bmu(unit_input)]
+        return (1.0/len(unit_input)) * np.linalg.norm(unit_input - bmu)**2
+
 
     def activation_vector(self, unit_input, continuous = False):
         val = np.zeros(len(self.units))
@@ -85,12 +87,9 @@ class RSOM(SOM):
             print "Input of length {0} incompatible with SOM length {1}".format(len(unit_input),self.units.shape[1])
             return
 
-        print "Updating on input: {}".format( unit_input)
         bmu_r_index = self.bmu_r(unit_input)
         bmu_r = self.units[bmu_r_index]
-        print "Found bmu_r: {}".format(bmu_r)
-        mse = (1.0/len(unit_input)) * np.linalg.norm(unit_input - bmu_r)**2
-        print "MSE before update: {}".format(mse)
+        mse = self.mse(unit_input)
         for weight_index in range(len(self.units)):
             w_t = self.units[weight_index]
             y_t = self.differences[weight_index]
