@@ -17,11 +17,11 @@ class timeDomain(object):
         pass
 
     # will rely on external library
-    def importFromWAV(self, filename):
+    def import_from_wav(self, filename):
         pass
 
     # will rely on external library
-    def importFromMP3(self, filename):
+    def import_from_mp3(self, filename):
         pass
 
 
@@ -35,11 +35,11 @@ class spectrogram(object):
     def __init__(self, timeDomainSignal):
         pass
     # Runs STFT algorithm on successive chunks of the signal
-    def stftHannWindow(self, intervalSize, offset, hann=True):
+    def stft_hann_window(self, intervalSize, offset, hann=True):
         pass
 
     # Hann windowing mitigates aliasing
-    def hannWindow(self, signalChunk):
+    def hann_window(self, signalChunk):
         pass
 
 

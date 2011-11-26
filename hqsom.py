@@ -60,7 +60,7 @@ class hierarchy(object):
         pass
     def update(self, input):
         pass
-    def BMU(self):
+    def bmu(self):
         pass
 
 
