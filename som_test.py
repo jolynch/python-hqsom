@@ -110,7 +110,7 @@ def test_hqsom_noise():
     #Add in gausian noise
     noise = np.random.normal(0.0,.05,test_data.shape)
     test_data = test_data + noise
-    g1,g2,s1,s2,a = .1,.1,16,100,.3
+    g1,g2,s1,s2,a = .1,.1,16,50,.1
     hqsom = HQSOM(9,25,3)
     def flush(num):
         for l in range(num):
