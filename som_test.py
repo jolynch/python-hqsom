@@ -1,6 +1,7 @@
 from som import *
+from hqsom import *
 
-tests = ("som","rsom")
+tests = ("som","rsom", "hqsom_noise_5")
 
 input_vectors = np.array([
         [0.1 , 0.1 , 0.1 , 0.1],
@@ -59,6 +60,80 @@ def test_rsom():
         print "Got MSE of {}".format(rsom1.mse(input_vectors[i]))
         print "Activation vector: {}".format(rsom1.activation_vector(input_vectors[i], True))
         assert rsom1.mse(input_vectors[i%2]) < .3 
+
+def test_hqsom():
+    test_data = np.array([
+        [0,0,0,0,0,0,0,0,0],
+        [1,1,1,0,0,0,0,0,0],
+        [0,0,0,1,1,1,0,0,0],
+        [0,0,0,0,0,0,1,1,1],
+        [1,0,0,1,0,0,1,0,0],
+        [0,1,0,0,1,0,0,1,0],
+        [0,0,1,0,0,1,0,0,1]])
+    
+    g1,g2,s1,s2,a = .1,.1,4,20,.1
+    hqsom = HQSOM(9,40,3)
+    def flush(num):
+        for l in range(num):
+            hqsom.update(test_data[0], g1,g2,s1,s2,a)
+
+    for j in range(40):
+        for i in range(11):
+            flush(3)
+            seq = ()
+            if i %2 == 0:
+                seq = (1,2,3)
+            else:
+                seq = (4,5,6)
+            for k in seq:
+                hqsom.update(test_data[k], g1, g2, s1, s2, a)
+            flush(3)
+
+    for t in test_data:
+        print "Classification of {}: {}".format(t, hqsom.activation_vector(t))
+        print hqsom.activation_vector(t,True)
+    assert test_data != None
+
+def test_hqsom_noise():
+    test_data = np.array([
+        [0,0,0,0,0,0,0,0,0],
+        [1,1,1,0,0,0,0,0,0],
+        [0,0,0,1,1,1,0,0,0],
+        [0,0,0,0,0,0,1,1,1],
+        [1,0,0,1,0,0,1,0,0],
+        [0,1,0,0,1,0,0,1,0],
+        [0,0,1,0,0,1,0,0,1]])
+    noise = np.random.normal(0.0,.05,test_data.shape)
+    test_data = test_data + noise
+    g1,g2,s1,s2,a = .1,.1,16,100,.1
+    hqsom = HQSOM(9,25,3)
+    def flush(num):
+        for l in range(num):
+            hqsom.update(test_data[0], g1,g2,s1,s2,a)
+
+    for j in range(40):
+        for i in range(11):
+            flush(3)
+            seq = ()
+            if i %2 == 0:
+                seq = (1,2,3)
+            else:
+                seq = (4,5,6)
+            for k in seq:
+                hqsom.update(test_data[k], g1, g2, s1, s2, a)
+            flush(3)
+
+    c = [hqsom.activation_vector(t) for t in test_data]
+    print c
+    assert c[0] != c[1] and c[1] != c[4]
+    assert c[1] == c[2] and c[2] == c[3]
+    assert c[4] == c[5] and c[5] == c[6]
+    assert c[3] != c[4]
+
+def test_hqsom_noise_5():
+    for i in range(5):
+        test_hqsom_noise()    
+
 
 if __name__ == "__main__":
     for test in tests:

@@ -5,6 +5,9 @@ import numpy as np
 # EG: We want to classify 5d vectors and we want the SOM to output a 4d activation vector
 #  => SOM(5,4)
 class SOM(object):
+    
+    #TODO: Bottom of page 4, luttrell's method needed to expand size
+    
     def __init__(self, input_size, output_size):
         self.units = np.random.random((output_size, input_size))
 
@@ -15,16 +18,17 @@ class SOM(object):
 
     #Adaptive Neighborhood_function: h_ib(t)
     # This basically tells us how close we are to the input and bmu
+    # NOTE: Currently we use a gaussian, a mexican hat function might be better
     def nb_func(self, unit_i, unit_bmu, mse_bmu, unit_input, spread):
         #What do we want to consider 0?
-        eff_zero = 1e-12
+        eff_zero = 1e-20
         #e^(-oo) = 0
         if mse_bmu < eff_zero:
-            return 0
+            return 0.0
         val =  np.exp(- abs(unit_i - unit_bmu)**2 / (mse_bmu * spread))
         #
         if val < eff_zero:
-            return 0
+            return 0.0
         return val
 
     #SOM update rule
@@ -33,6 +37,8 @@ class SOM(object):
     # spread : (sigma) the variance of the neighborhood function, valid values from 0 to 1 
     # 
     # w_i(t1) = w_i(t) + rate * h_ib(t)*(x(t)-w_i(t))
+
+    #TODO: select spread based on variance as per the paper
 
     def update(self, unit_input, rate, spread):
         if len(unit_input) != self.units.shape[1]:
@@ -45,17 +51,24 @@ class SOM(object):
             w_t = self.units[weight_index]
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_index, mse, unit_input, spread)*(unit_input-w_t)
 
-    def mse(self, unit_input):
-        bmu = self.units[self.bmu(unit_input)]
+    def mse(self, unit_input, som_unit=None):
+        bmu = None
+        if som_unit != None:
+            bmu = som_unit
+        else:
+            bmu = self.units[self.bmu(unit_input)]
         return (1.0/len(unit_input)) * np.linalg.norm(unit_input - bmu)**2
-
 
     def activation_vector(self, unit_input, continuous = False):
         val = np.zeros(len(self.units))
         if continuous:
-            val = [np.linalg.norm(unit-unit_input) for unit in self.units]
-            min_val = min(val)
-            val = np.array([ min_val / i for i in val])
+            # Since we minimize mse, I use that as the normalization for continuous
+            # activation vectors.  The square is to decrease the values of non matching
+            # units more
+            mse_bmu = self.mse(unit_input)**3
+            for i in range(len(self.units)):
+                val[i] = self.mse(unit_input, self.units[i])**3
+            val = np.array([ mse_bmu / v for v in val])
         else:
             bmu_index = self.bmu(unit_input)
             val[bmu_index] = 1

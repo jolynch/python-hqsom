@@ -13,21 +13,40 @@ HQSOM base unit, comprised of a SOM feeding into an RSOM
 class HQSOM(object):
     
     '''
-    @param inSize - size of input
-    @param outSize - size of output
-    @param alphaSOM - learning rate for SOM component
-    @param alphaRSOM - learning rate for RSOM component
-    @parma gamma - time decay rate for RSOM component
+    @param som_input_size - size of input, how much data do we have
+    @param som_map_size - # of spatial entities you want to be able to identify
+    @param rsom_map_size - # of spatial-temporal entities you want to be able to identify
     @param initMapUnits - specify if fewer than outSize are desired
     @param grow - grow internal map using Luttrell's method; requires support
                     by underlying SOM/RSOM implementation
+   
     '''
-    def __init__(self, inSize, outSize,
-                 alphaSOM, alphaRSOM, gamma,
+    #NOTE: intially we only support the RSOM outputing a single number: it's bmu index
+    def __init__(self, som_input_size, som_map_size, rsom_map_size,
                  initMapUnits=None, grow=False):
-        self.som = SOM()
-        self.rsom = RSOM()
+        self.som = SOM(som_input_size, som_map_size)
+        self.rsom = RSOM(som_map_size, rsom_map_size)
 
+    '''
+    @param unit_input - the test data
+    @param gamma_som - the learning rate of the som
+    @param gamma_rsom - the learning rate of the rsom
+    @param sigma - the spread of the neighborhood function
+    @param alpha - the relative time value of data
+    '''
+
+    def update(self, unit_input, gamma_som=.3, gamma_rsom=.3, sigma_som=.8, sigma_rsom=.8, alpha=.5):
+        #print "Training on {}".format(unit_input)
+        self.som.update(unit_input, gamma_som, sigma_som)
+        som_output = self.som.activation_vector(unit_input, True)
+        self.rsom.update(som_output, gamma_rsom, sigma_rsom, alpha)
+
+    def activation_vector(self, unit_input, continuous=False):
+        som_output = self.som.activation_vector(unit_input, True)
+        if continuous:
+            return self.rsom.activation_vector(som_output, True)
+        else:
+            return self.rsom.bmu(som_output)
 
 
 
@@ -35,7 +54,7 @@ class HQSOM(object):
 '''
 Configuration object to create hierarchies of base units
 '''
-class hierarchyConfig(object):
+class HierarchyConfig(object):
     def __init__(self):
         pass
 
@@ -44,7 +63,7 @@ class hierarchyConfig(object):
 Assumes the input field is square, that the 
 
 '''
-class simple2dHierarchyConfig(object):
+class Simple2dHierarchyConfig(object):
     def __init__(self):
         pass
 
@@ -55,7 +74,7 @@ class simple2dHierarchyConfig(object):
 '''
 Base class for hierarchies of HQSOM units
 '''
-class hierarchy(object):
+class Hierarchy(object):
     def __init__(self):
         pass
     def update(self, input):
@@ -70,7 +89,7 @@ best-matching unit (BMU) *indices*, rather than map unit activation vectors.
 The upper units operate on a one-dimensional topology.  This is how the
 ones from the paper work (they are very simple -- two layers only).
 '''
-class indexHierarchy(hierarchy):
+class IndexHierarchy(Hierarchy):
     
     # Create new hierarchy from representation of desired topology.
     def __init__(self, configList):
@@ -81,7 +100,7 @@ class indexHierarchy(hierarchy):
 Hierarchies in which mid/upper units operate on the entire activation vectors
 from the units below them.
 '''
-class vectorHierarchy(hierarchy):
+class VectorHierarchy(Hierarchy):
 
     # Create new hierarchy from representation of desired topology.
     #    @param quantize - if True, regularize activation vectors to 0-1;
