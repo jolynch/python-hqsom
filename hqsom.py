@@ -126,10 +126,10 @@ class PaperFig3Hierarchy(Hierarchy):
             col = (i-row)/3
             
             # unit_input is an np.ndarray
-            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3)]
+            unit_input = full_input[(2*row+14*col+0):(2*row+14*col+3)]
             # TODO: these are inefficiently copying the array
-            np.append(unit_input, full_input[(2*row+21*col+7):(2*row+21*col+10)])
-            np.append(unit_input, full_input[(2*row+21*col+14):(2*row+21*col+17)])
+            unit_input = np.append(unit_input, full_input[(2*row+14*col+7):(2*row+14*col+10)])
+            unit_input = np.append(unit_input, full_input[(2*row+14*col+14):(2*row+14*col+17)])
             
             bottom_outputs.append(
                       self.bottom_hqsom_list[i].activation_vector(unit_input))

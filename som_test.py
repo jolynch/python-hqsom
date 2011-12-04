@@ -268,20 +268,16 @@ def test_hqsom_77():
     g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.01,16.0, 100,4, 250,4,2
     seq_num = 0
     for i in range(1):
-        for d in blank_data:
-            hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
-            print "update {}".format(seq_num)
-            seq_num += 1
         for data_set in [square_data, diamond_data, x_data]:
-            for j in range(5):
+            for j in range(1):
                 for d in data_set:
                     hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
                     print "update {}".format(seq_num)
                     seq_num += 1
-        #for d in blank_data:
-        #    hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
-        #    print "update {}".format(seq_num)
-        #    seq_num += 1
+            for d in blank_data:
+                hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+                print "update {}".format(seq_num)
+                seq_num += 1
 
     print hqsom.activation_vector(blank_data[0])
     print hqsom.activation_vector(square_data[0])
