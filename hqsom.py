@@ -135,7 +135,7 @@ class PaperFig3Hierarchy(Hierarchy):
                       self.bottom_hqsom_list[i].activation_vector(unit_input))
         
         # use outputs from layer-1 HQSOM units to get output from top-level one
-        self.top_hqsom.activation_vector(np.array(bottom_outputs),
+        return self.top_hqsom.activation_vector(np.array(bottom_outputs),
                                          continuous_output)
 
 
