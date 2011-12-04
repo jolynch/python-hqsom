@@ -1,0 +1,28 @@
+The main goals are to: make clear what your findings are, why you think they came out the
+way they did, and why that might be important and to be precise enough to allow someone to
+replicate your experiments (or verify your proofs).
+
+
+Title Page
+
+Abstract (150-200 word fat paragraph on its own page)
+
+Introduction and Discussion, Incl. Brain Stuff (1/2 page)
+
+HQSOM Paper Summary, Other Literature Review, Comparisons to HTM/HMAX/others (2-3 pages)
+
+Hypotheses, Plan, and Risks (1/2 page)
+
+System Design and Variables (1-2 pages)
+
+Implementation Process and Results (3-4 pages)
+
+Tables (3-6 pages)
+
+Discussion and Conclusion (1 page)
+
+References (lots)
+
+
+
+
