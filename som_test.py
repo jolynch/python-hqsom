@@ -264,11 +264,11 @@ def test_hqsom_77():
     #print len(diamond_data)
     #print len(x_data)
 
-    hqsom = PaperFig3Hierarchy(100,40,100,4)
-    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.01,16.0, 100,4, 250,4,2
+    hqsom = PaperFig3Hierarchy(100,40,100,5)
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001,16.0, 50.0, 4.0, 75.0, .1, .01
     seq_num = 0
-    num_cycles, data_sets, num_repeats = 1, [square_data], 5
-    total_run_count = num_cycles * (len(data_sets)*len(data_sets[0])*num_repeats+len(blank_data))
+    num_cycles, data_sets, num_repeats = 1, [square_data, diamond_data, x_data], 5
+    total_run_count = num_cycles * len(data_sets)*(len(data_sets[0])*num_repeats+len(blank_data))
     for i in range(num_cycles):
         for data_set in data_sets:
             for j in range(num_repeats):
@@ -284,6 +284,7 @@ def test_hqsom_77():
     print hqsom.activation_vector(blank_data[0])
     print hqsom.activation_vector(square_data[0])
     print hqsom.activation_vector(diamond_data[0])
+    print hqsom.activation_vector(x_data[0])
 
 
 if __name__ == "__main__":
