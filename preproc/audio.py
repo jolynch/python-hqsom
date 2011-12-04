@@ -4,42 +4,86 @@ as list-of-lists representations.
 
 Think of this as analogous to what it would take to convert a video into
 something that one could feed to a hierarchy, except for sound instead.
+
+This uses only mono WAV files.  Convert your mp3 files using some external
+program first if you want to use them with this.
 '''
 
+import wave
+import numpy as np
 
 
-# Time-domain representations of audio, as super-long arrays of floats.
-class timeDomain(object):
+# Frequency-domain representations of audio, from using a windowed FFT on
+# successive intervals of a time-domain representation of the file.
+# Essentially creates a list of arrays, each of which is an estimate
+# of the spectral density over an interval.
+class Spectrogram(object):
     
+    # imports a given mono WAV file
     def __init__(self, filename):
-        # calls appropriate import method to get time-domain repr of
-        # input signal
-        pass
+        self.wavfile = wave.open(filename, 'rb')
+        self.sample_rate = self.wavfile.getframerate()
+        self.total_num_samples = self.wavfile.getnframes()
+    
+    # FFT_length should be a power of 2 for best efficiency
+    def getSpectrogram(self, FFT_length):
+        num_fft_blocks = (self.total_num_samples / FFT_length) - 2
+        
+        # unpacked representation of a block of the wav file
+        temp = np.zeros((num_fft_blocks,FFT_length),np.Float)
+        
+        # read in the data from the file
+        for i in range(num_fft_blocks):
+            tempb = self.wavfile.readframes(FFT_length);
+            temp[i,:] = np.array(np.struct.unpack("%dB"%(FFT_length), \
+                        tempb),np.Float) - 128.0
+        self.wavfile.close()
+        
+        # window the data
+        temp = temp * np.hamming(FFT_length)
+        
+        # Transform with the FFT, Return Power
+        freq_pwr  = 10*np.log10(1e-20+np.abs(np.real_fft(temp,FFT_length)))
+        
+        # Plot the result
+        n_out_pts = (fft_length / 2) + 1
+        y_axis = 0.5*float(sample_rate) / n_out_pts * \
+                 arange(n_out_pts)
+        x_axis = (total_num_samps / float(sample_rate)) / \
+                 num_fft * arange(num_fft)
+        setvar('X',"Time (sec)")
+        setvar('Y',"Frequency (Hertz)")
+        conshade(freq_pwr,x_axis,y_axis)
+        disfin()
+        
+        
+        
+        
+        
+        
+'''
+Refs:
 
-    # will rely on external library
-    def import_from_wav(self, filename):
-        pass
+http://stackoverflow.com/questions/1303307/fft-for-spectrograms-in-python
 
-    # will rely on external library
-    def import_from_mp3(self, filename):
-        pass
+THIS ONE IS THE BEST:
+http://macdevcenter.com/pub/a/python/2001/01/31/numerically.html?page=1
+http://macdevcenter.com/pub/a/python/2001/01/31/numerically.html?page=2
+http://onlamp.com/python/2001/01/31/graphics/pysono.py
 
+LIBRARIES WE NEED FOR IT:
+http://docs.python.org/library/wave.html
+http://docs.scipy.org/doc/numpy/reference/routines.fft.html
 
+MATPLOTLIB VERSION, BUT ONLY FOR PLOTTING:
+http://matplotlib.sourceforge.net/api/pyplot_api.html#matplotlib.pyplot.specgram
 
-# Frequency-domain representations of audio, built from using an FFT version of
-# the short-term Fourier transform algorithm on a time-domain representation
-# of an audio signal, over successive portions of the signal using a Hann
-# window.  Essentially creates a list of arrays, each of which is an estimate
-# of the spectral density at that point in time.
-class spectrogram(object):
-    def __init__(self, timeDomainSignal):
-        pass
-    # Runs STFT algorithm on successive chunks of the signal
-    def stft_hann_window(self, intervalSize, offset, hann=True):
-        pass
-
-    # Hann windowing mitigates aliasing
-    def hann_window(self, signalChunk):
-        pass
+DIFFERENT WINDOWING OPTIONS:
+http://en.wikipedia.org/wiki/Window_function#Hamming_window
 
 
+'''
+        
+        
+        
+        
