@@ -84,17 +84,16 @@ class PaperFig3Hierarchy(Hierarchy):
                gamma_som_top=.3, gamma_rsom_top=.3,
                sigma_som_top=.8, sigma_rsom_top=.8, alpha_top=.5):
         #print "Training on {}".format(full_input)
-        
         # slice up input image and use it to update the layer-1 HQSOM base units
         bottom_outputs = []
         for i in range(9):
             row = i % 3
             col = (i-row)/3
             # unit_input is an np.ndarray
-            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3)]
+            unit_input = full_input[(2*row+14*col+0):(2*row+14*col+3)]
             # TODO: these are inefficiently copying the array
-            np.append(unit_input, full_input[(2*row+21*col+7):(2*row+21*col+10)])
-            np.append(unit_input, full_input[(2*row+21*col+14):(2*row+21*col+17)])
+            unit_input = np.append(unit_input, full_input[(2*row+14*col+7):(2*row+14*col+10)])
+            unit_input = np.append(unit_input, full_input[(2*row+14*col+14):(2*row+14*col+17)])
             
             self.bottom_hqsom_list[i].update(
                          unit_input, gamma_som_bottom, gamma_rsom_bottom,

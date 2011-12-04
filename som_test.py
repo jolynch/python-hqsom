@@ -1,7 +1,10 @@
 from som import *
 from hqsom import *
+from preproc.images import *
+import getopt, sys
+import traceback
 
-tests = ("som","rsom", "hqsom", "hqsom_noise_multiple")
+tests = ("som","rsom", "hqsom", "hqsom_noise_multiple", "image_gen", "hqsom_77")
 
 input_vectors = np.array([
         [0.1 , 0.1 , 0.1 , 0.1],
@@ -145,18 +148,180 @@ def test_hqsom_noise_multiple():
     print "Passed {} out of {}".format(num_tests-num_errors, num_tests)
     assert num_errors < .25 * num_tests
 
-if __name__ == "__main__":
-    for test in tests:
-        print "#"*80
-        print "Running test on: {}".format(test)
-        print "-"*80
-        try:
-            eval("test_"+test)()
-        except Exception as e :
-            print e
-            print "!!! ERROR !!!"
-        else:
-            print "SUCCESS"
+def test_image_gen():
+    #SQUARE IMAGES
+    Square_Image(7,(0,0)).save()
+    #Generate 5x5
+    start = [(0,0),(0,1),(0,2),
+             (1,0),(1,1),(1,2),
+             (2,0),(2,1),(2,2)]
+    for s in start:
+        Square_Image(5,s).save()
+    #Generate 3x3
+    for i in range(5):
+        for j in range(5):
+            Square_Image(3,(i,j)).save()
 
-        print "#"*80
+    #DIAMOND IMAGES
+    Diamond_Image(3, (3,3)).save()
+    #Generate 5x5
+    for i in range(2,5):
+        for j in range(2,5):
+            Diamond_Image(2, (i,j)).save()
+    #Generate 3x3
+    for i in range(1,6):
+        for j in range(1,6):
+            Diamond_Image(1,(i,j)).save()
+    #X IMAGES
+    X_Image(7,(0,0)).save()
+    for i in range(3):
+        for j in range(3):
+            X_Image(5,(i,j)).save()
+    for i in range(5):
+        for j in range(5):
+            X_Image(3,(i,j)).save()
+
+def enumerate_spiral(l):
+    coords, coord, original_l = [], [0,0], l
+    while l > 0:
+        #Go down
+        for i in range(l):
+            if not tuple(coord) in coords:
+                coords.append(tuple(coord))
+            coord[1]+=1
+            #print "going down from {} to {}".format(coords[-1], coord)
+        if l < original_l:
+            l -= 1
+        #Go right
+        for i in range(l):
+            if not tuple(coord) in coords:
+                coords.append(tuple(coord))
+            coord[0]+=1
+            #print "going right from {} to {}".format(coords[-1], coord)
+        #Go up
+        for i in range(l):
+            if not tuple(coord) in coords:
+                coords.append(tuple(coord))
+            coord[1]-=1
+            #print "going up from {} to {}".format(coords[-1], coord)
+        l -= 1
+        #Go left
+        for i in range(l):
+            if not tuple(coord) in coords:
+                coords.append(tuple(coord))
+            coord[0]-=1
+            #print "going left from {} to {}".format(coords[-1], coord)
+    coords.append(coord)
+    return coords
+
+def test_hqsom_77():
+    #Generate the test sequence, note that we must to a spiral exposure to get the
+    #correct temporal-spatial representations
+    
+    #7x7 only has one possible test
+    coord_test = {"large":[(7,0,0)]}
+    #5x5 has 9 possible positions
+    coord_test["medium"] = [(5,i,j) for (i,j) in enumerate_spiral(2)]
+    #3x3 has 25 possible positions
+    coord_test["small"] = [(3,i,j) for (i,j) in enumerate_spiral(4)]
+    #######The SQUARE data sets
+    square_data = []
+    #First we spiral out, then back in for each data set
+    for data_set in ("large","medium", "small"):
+        iteration = coord_test[data_set][::-1] + coord_test[data_set] 
+        for (w,x,y) in iteration:
+            image_data = Data_Image("data/square_{}_({}, {}).png".format(w,x,y))
+            square_data.append(image_data.data())
+    #for i in range(len(square_data)):
+    #    im = square_data[i]
+    #    im.save("square_test_{}.png".format(i), "PNG")
+    #######
+    #######The DIAMOND data sets
+    diamond_data = []
+    #First we spiral out, then back in for each data set
+    for data_set in ("large","medium", "small"):
+        iteration = coord_test[data_set][::-1] + coord_test[data_set] 
+        for (w,x,y) in iteration:
+            image_data = Data_Image("data/diamond_{}_({}, {}).png".format(w/2,x+w/2,y+w/2))
+            diamond_data.append(image_data.data())
+    #for i in range(len(diamond_data)):
+    #    im = diamond_data[i]
+    #    im.save("diamond_test_{}.png".format(i), "PNG")
+    #######The X data sets
+    x_data = []
+    #First we spiral out, then back in for each data set
+    for data_set in ("large","medium", "small"):
+        iteration = coord_test[data_set][::-1] + coord_test[data_set] 
+        for (w,x,y) in iteration:
+            image_data = Data_Image("data/x_{}_({}, {}).png".format(w,x,y))
+            x_data.append(image_data.data())
+    #for i in range(len(x_data)):
+    #    im = x_data[i]
+    #    im.save("x_test_{}.png".format(i), "PNG")
+    
+    blank_data = [Data_Image().data() for i in range(100)]
+    #print len(square_data)
+    #print len(diamond_data)
+    #print len(x_data)
+
+    hqsom = PaperFig3Hierarchy(100,40,100,4)
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.01,16.0, 100,4, 250,4,2
+    seq_num = 0
+    for i in range(1):
+        for d in blank_data:
+            hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+            print "update {}".format(seq_num)
+            seq_num += 1
+        for data_set in [square_data, diamond_data, x_data]:
+            for j in range(5):
+                for d in data_set:
+                    hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+                    print "update {}".format(seq_num)
+                    seq_num += 1
+        #for d in blank_data:
+        #    hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+        #    print "update {}".format(seq_num)
+        #    seq_num += 1
+
+    print hqsom.activation_vector(blank_data[0])
+    print hqsom.activation_vector(square_data[0])
+    print hqsom.activation_vector(diamond_data[0])
+
+
+if __name__ == "__main__":
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "t:l", ["list","test="])
+    except getopt.GetoptError, err:
+        # print help information and exit:
+        print str(err) # will print something like "option -a not recognized"
+    for o,a in opts:
+        if o in ("-t", "--test"):
+            print "Running {} test:".format(a)
+            try:
+                eval("test_"+a)()
+            except Exception as e:
+                print e
+                traceback.print_exc(file=sys.stdout)
+                print "!!! ERROR !!!"
+            else:
+                print "SUCCESS"
+        elif o in ("-l", "--list"):
+            print "List of tests: {}".format(tests)
+        # print help information and exit:
+    if len(opts) == 0:
+        print "Running all Tests"
+        for test in tests:
+            print "#"*80
+            print "Running test on: {}".format(test)
+            print "-"*80
+            try:
+                eval("test_"+test)()
+            except Exception as e :
+                print e
+                traceback.print_exc(file=sys.stdout)
+                print "!!! ERROR !!!"
+            else:
+                print "SUCCESS"
+            print "#"*80
+
 
