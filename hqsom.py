@@ -23,9 +23,9 @@ class HQSOM(object):
     '''
     #NOTE: intially we only support the RSOM outputing a single number: it's bmu index
     def __init__(self, som_input_size, som_map_size, rsom_map_size,
-                 initMapUnits=None, grow=False):
-        self.som = SOM(som_input_size, som_map_size)
-        self.rsom = RSOM(som_map_size, rsom_map_size)
+                 use_pure_implementation=False,  initMapUnits=None, grow=False):
+        self.som = SOM(som_input_size, som_map_size, pure=use_pure_implementation)
+        self.rsom = RSOM(som_map_size, rsom_map_size, pure=use_pure_implementation)
 
     '''
     @param unit_input - the test data
@@ -67,11 +67,17 @@ invariant representation of the bottom-level input image.
 class PaperFig3Hierarchy(Hierarchy):
     
     def __init__(self, som_map_size_bottom, rsom_map_size_bottom,
-                        som_map_size_top, rsom_map_size_top):
-        self.bottom_hqsom_list = [HQSOM(9, som_map_size_bottom,
-                                            rsom_map_size_bottom)
+                       som_map_size_top, rsom_map_size_top,
+                       use_pure_implementation = False ):
+        self.bottom_hqsom_list = [HQSOM(9, 
+                                        som_map_size_bottom,
+                                        rsom_map_size_bottom,
+                                        use_pure_implementation = use_pure_implementation)
                                   for i in range(9)]
-        self.top_hqsom = HQSOM(9, som_map_size_top, rsom_map_size_top)
+        self.top_hqsom = HQSOM(9, 
+                               som_map_size_top, 
+                               rsom_map_size_top, 
+                               use_pure_implementation = use_pure_implementation)
     
     '''
     Pass in the 7x7-pixel image as a 1-dimensional np.ndarray, enumerated

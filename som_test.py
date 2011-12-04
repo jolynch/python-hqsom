@@ -4,7 +4,7 @@ from preproc.images import *
 import getopt, sys
 import traceback
 
-tests = ("som","rsom", "hqsom", "hqsom_noise_multiple", "image_gen", "hqsom_77")
+tests = ("som","rsom", "hqsom", "hqsom_noise", "hqsom_noise_multiple", "image_gen", "hqsom_77")
 
 input_vectors = np.array([
         [0.1 , 0.1 , 0.1 , 0.1],
@@ -74,8 +74,8 @@ def test_hqsom():
         [0,1,0,0,1,0,0,1,0],
         [0,0,1,0,0,1,0,0,1]])
     
-    g1,g2,s1,s2,a = .1,.1,16,100,.1
-    hqsom = HQSOM(9,25,3)
+    g1,g2,s1,s2,a = .1,.1,16,90,.1
+    hqsom = HQSOM(9,65,3, use_pure_implementation=True)
     def flush(num):
         for l in range(num):
             hqsom.update(test_data[0], g1,g2,s1,s2,a)
@@ -113,8 +113,8 @@ def test_hqsom_noise():
     #Add in gausian noise
     noise = np.random.normal(0.0,.05,test_data.shape)
     test_data = test_data + noise
-    g1,g2,s1,s2,a = .1,.1,16,50,.1
-    hqsom = HQSOM(9,25,3)
+    g1,g2,s1,s2,a = .1,.1,16,90,.1
+    hqsom = HQSOM(9,65,3,use_pure_implementation=True)
     def flush(num):
         for l in range(num):
             hqsom.update(test_data[0], g1,g2,s1,s2,a)
@@ -140,6 +140,7 @@ def test_hqsom_noise():
 
 def test_hqsom_noise_multiple():
     num_errors, num_tests = 0, 5
+    np.random.seed()
     for i in range(num_tests):
         try:
             test_hqsom_noise()    
@@ -147,39 +148,6 @@ def test_hqsom_noise_multiple():
             num_errors += 1
     print "Passed {} out of {}".format(num_tests-num_errors, num_tests)
     assert num_errors < .25 * num_tests
-
-def test_image_gen():
-    #SQUARE IMAGES
-    Square_Image(7,(0,0)).save()
-    #Generate 5x5
-    start = [(0,0),(0,1),(0,2),
-             (1,0),(1,1),(1,2),
-             (2,0),(2,1),(2,2)]
-    for s in start:
-        Square_Image(5,s).save()
-    #Generate 3x3
-    for i in range(5):
-        for j in range(5):
-            Square_Image(3,(i,j)).save()
-
-    #DIAMOND IMAGES
-    Diamond_Image(3, (3,3)).save()
-    #Generate 5x5
-    for i in range(2,5):
-        for j in range(2,5):
-            Diamond_Image(2, (i,j)).save()
-    #Generate 3x3
-    for i in range(1,6):
-        for j in range(1,6):
-            Diamond_Image(1,(i,j)).save()
-    #X IMAGES
-    X_Image(7,(0,0)).save()
-    for i in range(3):
-        for j in range(3):
-            X_Image(5,(i,j)).save()
-    for i in range(5):
-        for j in range(5):
-            X_Image(3,(i,j)).save()
 
 def enumerate_spiral(l):
     coords, coord, original_l = [], [0,0], l
@@ -215,76 +183,90 @@ def enumerate_spiral(l):
     return coords
 
 def test_hqsom_77():
-    #Generate the test sequence, note that we must to a spiral exposure to get the
-    #correct temporal-spatial representations
-    
-    #7x7 only has one possible test
-    coord_test = {"large":[(7,0,0)]}
-    #5x5 has 9 possible positions
+    #Generate the test sequence, note that we must do a spiral exposure to get the
+    #correct temporal-spatial representations in the SOMS
+    #7x7 only has one possible test (cycled twice of course)
+    coord_test = {"large":[(7,0,0),(7,0,0)]}
+    #5x5 has 9 possible positions (cycled twice of course)
     coord_test["medium"] = [(5,i,j) for (i,j) in enumerate_spiral(2)]
-    #3x3 has 25 possible positions
+    coord_test["medium"] = coord_test["medium"][::-1] + coord_test["medium"] 
+    #3x3 has 25 possible positions (cycled twice of course)
     coord_test["small"] = [(3,i,j) for (i,j) in enumerate_spiral(4)]
-    #######The SQUARE data sets
-    square_data = []
+    coord_test["small"] = coord_test["small"][::-1] + coord_test["small"] 
+    #######The available data sets
+    square_data, diamond_data, x_data = [], [], []
     #First we spiral out, then back in for each data set
-    for data_set in ("large","medium", "small"):
-        iteration = coord_test[data_set][::-1] + coord_test[data_set] 
-        for (w,x,y) in iteration:
-            image_data = Data_Image("data/square_{}_({}, {}).png".format(w,x,y))
-            square_data.append(image_data.data())
-    #for i in range(len(square_data)):
-    #    im = square_data[i]
-    #    im.save("square_test_{}.png".format(i), "PNG")
-    #######
-    #######The DIAMOND data sets
-    diamond_data = []
-    #First we spiral out, then back in for each data set
-    for data_set in ("large","medium", "small"):
-        iteration = coord_test[data_set][::-1] + coord_test[data_set] 
-        for (w,x,y) in iteration:
-            image_data = Data_Image("data/diamond_{}_({}, {}).png".format(w/2,x+w/2,y+w/2))
-            diamond_data.append(image_data.data())
-    #for i in range(len(diamond_data)):
-    #    im = diamond_data[i]
-    #    im.save("diamond_test_{}.png".format(i), "PNG")
-    #######The X data sets
-    x_data = []
-    #First we spiral out, then back in for each data set
-    for data_set in ("large","medium", "small"):
-        iteration = coord_test[data_set][::-1] + coord_test[data_set] 
-        for (w,x,y) in iteration:
-            image_data = Data_Image("data/x_{}_({}, {}).png".format(w,x,y))
-            x_data.append(image_data.data())
-    #for i in range(len(x_data)):
-    #    im = x_data[i]
-    #    im.save("x_test_{}.png".format(i), "PNG")
+    for data_type,data_class,data_container in [("square", Square_Image, square_data),
+                                                ("diamond", Diamond_Image, diamond_data),
+                                                ("x", X_Image, x_data)]:
+        for data_set in ("large","medium", "small"):
+            for (w,x,y) in coord_test[data_set]:
+                if data_type == "diamond":
+                    w,x,y = w/2, x+w/2, y+w/2
+                image_data = data_class(w,(x,y))
+                data_container.append(image_data.data())
+                image_data.save("data/{}_#{}#_".format(data_type, str(len(data_container)).zfill(2)))
     
     blank_data = [Data_Image().data() for i in range(100)]
     #print len(square_data)
     #print len(diamond_data)
     #print len(x_data)
 
-    hqsom = PaperFig3Hierarchy(100,40,100,5)
-    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001,16.0, 50.0, 4.0, 75.0, .1, .01
+    #Paper settings
+    #Make sure we don't use any of our "improvements"
+    output_size = 17
+    hqsom = PaperFig3Hierarchy(65,17,513,output_size, use_pure_implementation = True)
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001, 16.0, 100.0, 4.0, 200.0, .1, .01
+    run_name = "PAPER_"
+    num_cycles, data_sets, num_repeats = 150, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 5
+
+    
+    #Our settings
+    #output_size = 4
+    #hqsom = PaperFig3Hierarchy(20,10,25,output_size)
+    #g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.08,.1,.008, 25.0, 80.0, 12.0, 75.0, .08, .005
+    #run_name = "OUR_"
+    #num_cycles, data_sets, num_repeats = 5, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 1
+    
     seq_num = 0
-    num_cycles, data_sets, num_repeats = 1, [square_data, diamond_data, x_data], 5
-    total_run_count = num_cycles * len(data_sets)*(len(data_sets[0])*num_repeats+len(blank_data))
+    
+    MAP_Image(hqsom.top_hqsom.rsom.units, "output/{}INITIAL_TOP_RSOM_".format(run_name)).save()
+    total_run_count = num_cycles * len(data_sets)*(len(data_sets[0][1])*num_repeats+len(blank_data))
     for i in range(num_cycles):
-        for data_set in data_sets:
+        for data_type, data_set in data_sets:
             for j in range(num_repeats):
+                MAP_Image(hqsom.top_hqsom.rsom.units,"output/{}TOP_RSOM_{}_{}_{}".format(run_name,i,data_type,j)).save() 
                 for d in data_set:
                     hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
-                    print "update {}/{}".format(seq_num, total_run_count)
+                    print "{} update {}/{}".format(data_type, seq_num, total_run_count)
+                    print "{} current BMU: {}".format(data_type, hqsom.activation_vector(d))
                     seq_num += 1
+            data_type = "BLANK"
+            MAP_Image(hqsom.top_hqsom.rsom.units,"output/{}TOP_RSOM_{}_{}".format(run_name,i,data_type)).save() 
             for d in blank_data:
                 hqsom.update(d,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
-                print "update {}/{}".format(seq_num, total_run_count)
+                print "{} update {}/{}".format(data_type, seq_num, total_run_count)
+                print "{} current BMU: {}".format(data_type, hqsom.activation_vector(d))
                 seq_num += 1
+    
+    print "Collecting Classification Data, please wait this can take time"
+    data_sets = [("BLANK", blank_data)]+data_sets
+    output_hash = {"BLANK":[0]*output_size,"SQUARE":[0]*output_size,"DIAMOND":[0]*output_size,"X":[0]*output_size}
+    for data_name, data_collection in data_sets:
+        for i in data_collection:
+            result = hqsom.activation_vector(i)
+            output_hash[data_name][result] += 1
 
-    print hqsom.activation_vector(blank_data[0])
-    print hqsom.activation_vector(square_data[0])
-    print hqsom.activation_vector(diamond_data[0])
-    print hqsom.activation_vector(x_data[0])
+    for data_name, data_collection in data_sets:
+        mode = np.argmax(output_hash[data_name])
+        num_items = float(len(data_collection))
+        print "#"*80
+        print "Data Set: {}".format(data_name)
+        print "Most Frequently Classified As (MODE): {}".format(mode)
+        results = np.array(output_hash[data_name])
+        print "Full Distribution over Final RSOM Map Space:"
+        print results / num_items
+    MAP_Image(hqsom.bottom_hqsom_list[5].rsom.units,"output/FINAL_TOP_RSOM").save() 
 
 
 if __name__ == "__main__":
@@ -293,6 +275,9 @@ if __name__ == "__main__":
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
+
+    #So that we get reproduceable results
+    np.random.seed(15739)
     for o,a in opts:
         if o in ("-t", "--test"):
             print "Running {} test:".format(a)

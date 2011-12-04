@@ -11,6 +11,16 @@ vectorizing the inputs to the vision hierarchy by color.
 import numpy as np
 from PIL import Image, ImageDraw
 
+#For displaying RSOM and SOM weight matrices
+class MAP_Image(object):
+    def __init__(self, weight_matrix, name):
+        self.im = Image.fromstring("L", weight_matrix.shape, weight_matrix.tostring())
+        self.name = name
+
+    def save(self):
+        self.im.save("{}.png".format(self.name), "PNG")
+
+
 #Our representation 
 class Data_Image(object):
     
@@ -38,8 +48,8 @@ class Square_Image(Data_Image):
         endpoint = (upper_left_corner[0] + edge_length-1, upper_left_corner[1] + edge_length-1)
         draw.rectangle([upper_left_corner, endpoint], fill=255, outline=0)
     
-    def save(self):
-        self.im.save("square_{}_{}.png".format(self.l, self.u), "PNG")
+    def save(self, name="square"):
+        self.im.save("{}_{}_{}.png".format(name, self.l, self.u), "PNG")
 
 class Diamond_Image(Data_Image):
     def __init__(self, half_length, center):
@@ -53,8 +63,8 @@ class Diamond_Image(Data_Image):
         draw.line([l,ct,r,cb,l], fill=0)
 
 
-    def save(self):
-        self.im.save("diamond_{}_{}.png".format(self.hl, self.c), "PNG")
+    def save(self, name="diamond"):
+        self.im.save("{}_{}_{}.png".format(name,self.hl, self.c), "PNG")
 
 class X_Image(Data_Image):
     def __init__(self, edge_length, upper_left_corner):
@@ -68,6 +78,6 @@ class X_Image(Data_Image):
         draw.line([lt,rb], fill=0)
         draw.line([rt,lb], fill=0)
 
-    def save(self):
-        self.im.save("x_{}_{}.png".format(self.l, self.u), "PNG")
+    def save(self, name="x"):
+        self.im.save("{}_{}_{}.png".format(name,self.l, self.u), "PNG")
 

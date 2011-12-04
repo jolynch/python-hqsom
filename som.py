@@ -1,5 +1,6 @@
 #Implementation of a Self Organizing Map
 import numpy as np
+import random
 
 #Represents a single codebook of output_size units that are of size input_size
 # EG: We want to classify 5d vectors and we want the SOM to output a 4d activation vector
@@ -8,8 +9,17 @@ class SOM(object):
     
     #TODO: Bottom of page 4, luttrell's method needed to expand size
     
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, pure=False):
+        #random_array = [random.random() for i in range(input_size*output_size)]
+        #random_array2 = [random.random() for i in range(input_size*output_size)]
+        #random_array = np.array(random_array) + np.array(random_array2)[::-1]
+        #random_array = random_array/2.0
+        
+        #self.units = np.array(random_array).reshape((output_size, input_size))
         self.units = np.random.random((output_size, input_size))
+        self.mse_ema = 1e-20
+        #If we consider this a non-pure SOM, use our "improvements"
+        self.pure = pure
 
     #Best matching unit, returns the index of the bmu
     def bmu(self, unit_input):
@@ -24,17 +34,14 @@ class SOM(object):
         eff_zero = 1e-20
         #e^(-oo) = 0
         if mse_bmu < eff_zero:
-            return 0.0
-        val =  np.exp(- abs(unit_i - unit_bmu)**2 / (mse_bmu * spread))
-        #
-        if val < eff_zero:
-            return 0.0
+            return eff_zero
+        val =  max(np.exp(- abs(unit_i - unit_bmu)**3 / (mse_bmu * spread)), eff_zero)
         return val
 
     #SOM update rule
     # unit_input : An input vector of size N
-    # rate : (gamma) the learning rate, valid values from 0 to 1
-    # spread : (sigma) the variance of the neighborhood function, valid values from 0 to 1 
+    # rate : (gamma) the learning rate
+    # spread : (sigma) the variance of the neighborhood function
     # 
     # w_i(t1) = w_i(t) + rate * h_ib(t)*(x(t)-w_i(t))
 
@@ -50,6 +57,17 @@ class SOM(object):
         for weight_index in range(len(self.units)):
             w_t = self.units[weight_index]
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_index, mse, unit_input, spread)*(unit_input-w_t)
+       
+        #print "MSE: {}".format(mse)
+        #print "EMA: {}".format(self.mse_ema)
+        if not self.pure:
+            if mse / self.mse_ema > 10:
+                print "Massive Miss!! Stealing BMU {}".format(bmu_index)
+                print "Used effective sigma {} for update".format(mse * spread)
+                self.units[bmu_index] = self.units[bmu_index] + .5*(unit_input - self.units[bmu_index])
+            self.mse_ema = max(.9*(self.mse_ema) + .1*(mse), 1e-20)
+
+
 
     def mse(self, unit_input, som_unit=None):
         bmu = None
@@ -80,8 +98,8 @@ class RSOM(SOM):
     
     #Major difference to a SOM is that we have a first difference matrix as well
     # as the standard units matrix
-    def __init__(self, input_size, output_size):
-        super(RSOM, self).__init__(input_size, output_size)
+    def __init__(self, input_size, output_size, pure=False):
+        super(RSOM, self).__init__(input_size, output_size, pure)
         self.differences = np.zeros((output_size, input_size))
 
     def bmu_r(self, unit_input):
@@ -108,4 +126,11 @@ class RSOM(SOM):
             y_t = self.differences[weight_index]
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_r_index, mse, unit_input, spread)*y_t
             self.differences[weight_index] = (1-time_decay)*self.differences[weight_index] + time_decay * (unit_input-w_t)
+        
+        if not self.pure:
+            if mse / self.mse_ema > 10:
+                print "Massive Miss!! Stealing BMU {}".format(bmu_r_index)
+                print "Used effective sigma {} for update".format(mse * spread)
+                self.units[bmu_r_index] = self.units[bmu_r_index] + .5*(unit_input - self.units[bmu_r_index])
+            self.mse_ema = max(.9*(self.mse_ema) + .1*(mse), 1e-20)
 
