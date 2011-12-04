@@ -11,6 +11,8 @@ program first if you want to use them with this.
 
 import wave
 import numpy as np
+import struct
+
 
 
 # Frequency-domain representations of audio, from using a windowed FFT on
@@ -30,37 +32,30 @@ class Spectrogram(object):
         num_fft_blocks = (self.total_num_samples / FFT_length) - 2
         
         # unpacked representation of a block of the wav file
-        temp = np.zeros((num_fft_blocks,FFT_length),np.Float)
+        temp = np.zeros((num_fft_blocks,FFT_length),dtype=np.float64)
         
         # read in the data from the file
         for i in range(num_fft_blocks):
             tempb = self.wavfile.readframes(FFT_length);
-            temp[i,:] = np.array(np.struct.unpack("%dB"%(FFT_length), \
-                        tempb),np.Float) - 128.0
+            temp[i,:] = np.array(struct.unpack("%dB"%(FFT_length), \
+                        tempb),dtype=np.float64) - 128.0
         self.wavfile.close()
         
         # window the data
         temp = temp * np.hamming(FFT_length)
         
         # Transform with the FFT, Return Power
-        freq_pwr  = 10*np.log10(1e-20+np.abs(np.real_fft(temp,FFT_length)))
+        freq_pwr  = 10*np.log10(1e-20+np.abs(np.fft.rfft(temp,FFT_length)))
         
         # Plot the result
-        n_out_pts = (fft_length / 2) + 1
-        y_axis = 0.5*float(sample_rate) / n_out_pts * \
-                 arange(n_out_pts)
-        x_axis = (total_num_samps / float(sample_rate)) / \
-                 num_fft * arange(num_fft)
-        setvar('X',"Time (sec)")
-        setvar('Y',"Frequency (Hertz)")
-        conshade(freq_pwr,x_axis,y_axis)
-        disfin()
-        
-        
-        
-        
-        
-        
+        n_out_pts = (FFT_length / 2) + 1
+        y_axis = 0.5*float(self.sample_rate) / n_out_pts * np.arange(n_out_pts)
+        x_axis = (self.total_num_samps / float(self.sample_rate)) / \
+                 num_fft_blocks * np.arange(num_fft_blocks)
+
+
+
+
 '''
 Refs:
 
