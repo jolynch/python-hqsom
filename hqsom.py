@@ -35,7 +35,8 @@ class HQSOM(object):
     @param alpha - the relative time value of data
     '''
 
-    def update(self, unit_input, gamma_som=.3, gamma_rsom=.3, sigma_som=.8, sigma_rsom=.8, alpha=.5):
+    def update(self, unit_input, gamma_som=.3, gamma_rsom=.3, sigma_som=.8,
+                        sigma_rsom=.8, alpha=.5):
         #print "Training on {}".format(unit_input)
         self.som.update(unit_input, gamma_som, sigma_som)
         som_output = self.som.activation_vector(unit_input, True)
@@ -49,8 +50,89 @@ class HQSOM(object):
             return self.rsom.bmu(som_output)
 
 
+'''
+Base class from which all hierarchies inherit
+'''
+class Hierarchy(object):
+    pass
 
 
+'''
+Hard-coded layout for the hierarchy shown in figure 3 of the Draper Lab
+HQSOM paper.  Bottom layer has 3x3 base units over a 7x7-px (1-px-overlap)
+input image, then presents the BMUs of the bottom-layer SOMs in a 1-dimensional
+topology to the 2nd-level HQSOM base unit.  Final output is a compressed
+invariant representation of the bottom-level input image.
+'''
+class PaperFig3Hierarchy(Hierarchy):
+    
+    def __init__(self, som_map_size_bottom, rsom_map_size_bottom,
+                        som_map_size_top, rsom_map_size_top):
+        self.bottom_hqsom_list = [HQSOM(9, som_map_size_bottom,
+                                            rsom_map_size_bottom)
+                                  for i in range(9)]
+        self.top_hqsom = HQSOM(9, som_map_size_top, rsom_map_size_top)
+    
+    '''
+    Pass in the 7x7-pixel image as a 1-dimensional np.ndarray, enumerated
+        through each successive row.
+    The other params are just like those for update in the HQSOM base units.
+    '''
+    def update(self, full_input,
+               gamma_som_bottom=.3, gamma_rsom_bottom=.3,
+               sigma_som_bottom=.8, sigma_rsom_bottom=.8, alpha_bottom=.5,
+               gamma_som_top=.3, gamma_rsom_top=.3,
+               sigma_som_top=.8, sigma_rsom_top=.8, alpha_top=.5):
+        #print "Training on {}".format(full_input)
+        
+        # slice up input image and use it to update the layer-1 HQSOM base units
+        bottom_outputs = []
+        for i in range(9):
+            row = i % 3
+            col = (i-row)/3
+            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3),
+                                    (2*row+21*col+7):(2*row+21*col+10),
+                                    (2*row+21*col+14):(2*row+21*col+17)]
+            self.bottom_hqsom_list[i].update(
+                         unit_input, gamma_som_bottom, gamma_rsom_bottom,
+                         sigma_som_bottom, sigma_rsom_bottom, alpha_bottom)
+            bottom_outputs.append(
+                      self.bottom_hqsom_list[i].activation_vector(unit_input))
+        
+        # use outputs from layer-1 HQSOM units to update top-level one
+        self.top_hqsom.update(np.array(bottom_outputs),
+                                gamma_som_top, gamma_rsom_top,
+                                sigma_som_top, sigma_rsom_top, alpha_top)
+    
+    '''
+    this retrieves the output of the top-level hqsom base unit for a given
+    7x7 pixel input image.
+    
+    @param continuous_internal - pass activation vectors internally instead of
+                                 just the BMUs (currently unsupported)
+    @param continuous_output - retrieve the full activation vector from the
+                                 top unit instead of just the BMU
+    '''
+    def activation_vector(self, full_input, 
+                          continuous_internal=False,
+                          continuous_output=False):
+        
+        # slice up input image and get outputs from layer-1 HQSOM base units
+        bottom_outputs = []
+        for i in range(9):
+            row = i % 3
+            col = (i-row)/3
+            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3),
+                                    (2*row+21*col+7):(2*row+21*col+10),
+                                    (2*row+21*col+14):(2*row+21*col+17)]
+            bottom_outputs.append(
+                      self.bottom_hqsom_list[i].activation_vector(unit_input))
+        
+        # use outputs from layer-1 HQSOM units to get output from top-level one
+        self.top_hqsom.activation_vector(np.array(bottom_outputs),
+                                         continuous_output)
+
+        
 '''
 Configuration object to create hierarchies of base units
 '''
@@ -60,8 +142,7 @@ class HierarchyConfig(object):
 
 
 '''
-Assumes the input field is square, that the 
-
+Note - assumes the input field is square
 '''
 class Simple2dHierarchyConfig(object):
     def __init__(self):
@@ -71,16 +152,10 @@ class Simple2dHierarchyConfig(object):
 
 
 
+
 '''
-Base class for hierarchies of HQSOM units
+PROBABLY DEPRECATED
 '''
-class Hierarchy(object):
-    def __init__(self):
-        pass
-    def update(self, input):
-        pass
-    def bmu(self):
-        pass
 
 
 '''
