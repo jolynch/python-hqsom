@@ -90,9 +90,12 @@ class PaperFig3Hierarchy(Hierarchy):
         for i in range(9):
             row = i % 3
             col = (i-row)/3
-            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3),
-                                    (2*row+21*col+7):(2*row+21*col+10),
-                                    (2*row+21*col+14):(2*row+21*col+17)]
+            # unit_input is an np.ndarray
+            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3)]
+            # TODO: these are inefficiently copying the array
+            np.append(unit_input, full_input[(2*row+21*col+7):(2*row+21*col+10)])
+            np.append(unit_input, full_input[(2*row+21*col+14):(2*row+21*col+17)])
+            
             self.bottom_hqsom_list[i].update(
                          unit_input, gamma_som_bottom, gamma_rsom_bottom,
                          sigma_som_bottom, sigma_rsom_bottom, alpha_bottom)
@@ -122,9 +125,13 @@ class PaperFig3Hierarchy(Hierarchy):
         for i in range(9):
             row = i % 3
             col = (i-row)/3
-            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3),
-                                    (2*row+21*col+7):(2*row+21*col+10),
-                                    (2*row+21*col+14):(2*row+21*col+17)]
+            
+            # unit_input is an np.ndarray
+            unit_input = full_input[(2*row+21*col+0):(2*row+21*col+3)]
+            # TODO: these are inefficiently copying the array
+            np.append(unit_input, full_input[(2*row+21*col+7):(2*row+21*col+10)])
+            np.append(unit_input, full_input[(2*row+21*col+14):(2*row+21*col+17)])
+            
             bottom_outputs.append(
                       self.bottom_hqsom_list[i].activation_vector(unit_input))
         
@@ -132,7 +139,7 @@ class PaperFig3Hierarchy(Hierarchy):
         self.top_hqsom.activation_vector(np.array(bottom_outputs),
                                          continuous_output)
 
-        
+
 '''
 Configuration object to create hierarchies of base units
 '''
