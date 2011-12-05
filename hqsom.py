@@ -34,7 +34,7 @@ class HQSOM(object):
     @param sigma - the spread of the neighborhood function
     @param alpha - the relative time value of data
     '''
-
+    
     def update(self, unit_input, gamma_som=.3, gamma_rsom=.3, sigma_som=.8,
                         sigma_rsom=.8, alpha=.5):
         #print "Training on {}".format(unit_input)
@@ -146,10 +146,10 @@ class PaperFig3Hierarchy(Hierarchy):
 
 
 '''
-Configuration object to create hierarchies of base units
+Configuration object to create hierarchies along one dimension
 '''
 class HierarchyConfig(object):
-    def __init__(self):
+    def __init__(self, *args):
         pass
 
 
