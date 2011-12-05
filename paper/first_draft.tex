@@ -45,8 +45,9 @@ as a $nxm$ numpy array where $n$ is the input vector size and $m$ is the size of
 During an update call, the Best Matching Map Unit (BMU) for any given input vector is determined
 using a linear search for the minimum Euclidean distance and then all map units near to the BMU as
 well as the BMU are shifted towards the input according to a Gaussian neighborhood function.  The
-standard SOM update rule was used and is re-stated for convenience in equation (1).  
-\begin{equation}
+standard SOM update rule was used and is re-stated for convenience in equation ($\ref{eq:UPDATE}$).
+ 
+\begin{equation} \label{eq:UPDATE}
  \bold{w_{i}}(t+1) = \bold{w_i}(t) + \gamma h_{ib}(t)(\bold{x}(t)-\bold{w_i}(t))
 \end{equation}
 
@@ -55,27 +56,50 @@ Gaussian neighborhood function was chosen for simplicity <MENTION MEXICAN HAT>. 
 method returns either a discrete or a continuous representation of the mean-squared error between
 the input and any given map unit. The discrete activation vector is simply a $m$ dimension vector
 with the BMU index for a given input vector set to 1 and all others set to 0. The continuous
-activation vector is a $m$ dimension vector that has been regularized according to (2), where $a_i$
-represents the $i$th position in the activation vector, $\bold{w_b}$ is the BMU, $\bold{x}$ is the
-input vector, $\bold{w_i}$ represents the $i$th map unit, and $MSE(\bold{x},\bold{y})$ indicates the
-mean squared error between vectors $\bold{x}$ and $\bold{y}$.
-\begin{equation}
+activation vector is implemented using two different methodologies: a normal representation and a
+regularized representation. Both methods consist of defining a $m$ dimension vector.  In the case
+of the normal representation, equation ($\ref{eq:EUCMETH}$) is used and in the case of the
+regularized representation, equation ($\ref{eq:MSEMETH}$) is used, where $a_i$ represents the
+$i$th position in the activation vector, $\bold{w_b}$ is the BMU, $\bold{x}$ is the input vector,
+$\bold{w_i}$ represents the $i$th map unit, and $MSE(\bold{x},\bold{y})$ indicates the mean squared
+error between vectors $\bold{x}$ and $\bold{y}$.
+\begin{equation} \label{eq:EUCMETH}
+ a_i = \frac{1}{||\bold{w_i}-\bold{x}||}, \bold{a} = \frac{\bold{a}}{||\bold{a}||}
+\end{equation}
+\begin{equation} \label{eq:MSEMETH}
  a_i = \frac{MSE(\bold{w_b}, \bold{x})^3}{MSE(\bold{w_i},\bold{x})^3}
 \end{equation}
-This represention of an activation vector is based on the idea that the SOM is minimizing the
-total mean squared error over many iterations for any given data set, so it makes sense to use that
-as our relative metric between units in the map.  Note that the exponention is simply for
-regularization and is only useful for preserving orthoganality, which can drastically increase
-performance.
+The first method is fairly common in SOM implementations, but the second is intended to downplay the
+results of non-matching units, which should theoretically increase orthagonality while preserving
+noise tolerance.
 \\
 Recursive Self-Organizing Maps are simply a subclass of the SOM that use the modified RSOM update
 rule as well as one additional variable: the recursive difference matrix.  The time decay parameter
 is passed in at every update call.
 \subsection{Basic Design of SOM-RSOM Pair}
-
+Since both SOMs and RSOMs were implemented as Python objects, the SOM-RSOM pair simply consists of
+a SOM object and a RSOM object with an update and activation method that takes in an input vector
+$\bold{x}$, feeds it into the SOM to get a transformed activation vector $\bold{y}$ and finally
+takes that $\bold{y}$ and feeds it into the RSOM to get the final output which is the BMU of the
+RSOM.  The only difference between the two methods is that the update method is calling update
+internally while the activation method is just checking activation vectors.  In the code this
+SOM-RSOM pair is refered to as a Hierarchical Quilted Self-Organizing Map (HQSOM), even though
+technically you need to build a network of SOM-RSOM pairs before it is an HQSOM.
 \subsection{Replication of First Experiment}
+The first experiment presented in the paper was a simple example of 3x3 images with 3
+pixel horizontal and vertical lines that have been shifted to all possible positions.  This data
+set is small enough to be enumerated, and simple enough in concept to use a single SOM-RSOM pair as
+the HQSOM network.  The implementation is shown to be correct by three different tests: the first
+tests performance on non-noisy data, the second tests performance on noisy data, and the last tests
+performance on noisy data that has not been seen in training.  During tests, the HQSOM is exposed
+to three blank images, followed by three line images, followed by three blank images where the
+three line images alternate between the three horizontal and the three vertical images.  An example
+test sequence is shown in $\ref{fig:3TestData}$.
+
+
 \subsection{Replication of Second Experiment}
 \subsection{Extension into Audio}
+\subsection{Problems}
 \section{Discussion and Conclusions}
 \section{References}
 

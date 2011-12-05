@@ -1,10 +1,14 @@
 from som import *
 from hqsom import *
+from hqsom_audio import *
 from preproc.images import *
+import preproc.audio as audio
 import getopt, sys
 import traceback
+import matplotlib.pyplot as plt
 
-tests = ("som","rsom", "hqsom", "hqsom_noise", "hqsom_noise_multiple", "image_gen", "hqsom_77")
+
+tests = ("som","rsom", "hqsom", "hqsom_noise", "hqsom_noise_multiple", "image_gen", "hqsom_77_network", "hqsom_77", "audio_gen")
 
 input_vectors = np.array([
         [0.1 , 0.1 , 0.1 , 0.1],
@@ -75,13 +79,15 @@ def test_hqsom():
         [0,0,1,0,0,1,0,0,1]])
     
     g1,g2,s1,s2,a = .1,.1,16,90,.1
-    hqsom = HQSOM(9,65,3, use_pure_implementation=True)
+    hqsom = HQSOM(9,18,3, use_pure_implementation=True)
     def flush(num):
         for l in range(num):
             hqsom.update(test_data[0], g1,g2,s1,s2,a)
-
-    for j in range(40):
-        for i in range(11):
+    num_cycles, num_repeats = 25, 11
+    total_run_count, seq_count = num_cycles*num_repeats*9, 0 
+    for j in range(num_cycles):
+        for i in range(num_repeats):
+            print "update {}/{}".format(seq_count,total_run_count)
             flush(3)
             seq = ()
             if i %2 == 0:
@@ -91,6 +97,7 @@ def test_hqsom():
             for k in seq:
                 hqsom.update(test_data[k], g1, g2, s1, s2, a)
             flush(3)
+            seq_count += 9
 
     c = [hqsom.activation_vector(t) for t in test_data]
     print c
@@ -112,15 +119,18 @@ def test_hqsom_noise():
         [0,0,1,0,0,1,0,0,1]])
     #Add in gausian noise
     noise = np.random.normal(0.0,.05,test_data.shape)
-    test_data = test_data + noise
+    test_data = test_data + noise 
     g1,g2,s1,s2,a = .1,.1,16,90,.1
-    hqsom = HQSOM(9,65,3,use_pure_implementation=True)
+    #Due to the noise we have to add many more map units
+    hqsom = HQSOM(9,45,3, use_pure_implementation=True)
     def flush(num):
         for l in range(num):
             hqsom.update(test_data[0], g1,g2,s1,s2,a)
-
-    for j in range(40):
-        for i in range(11):
+    num_cycles, num_repeats = 45, 11
+    total_run_count, seq_count = num_cycles*num_repeats*9, 0 
+    for j in range(num_cycles):
+        for i in range(num_repeats):
+            print "update {}/{}".format(seq_count,total_run_count)
             flush(3)
             seq = ()
             if i %2 == 0:
@@ -130,6 +140,7 @@ def test_hqsom_noise():
             for k in seq:
                 hqsom.update(test_data[k], g1, g2, s1, s2, a)
             flush(3)
+            seq_count += 9
 
     c = [hqsom.activation_vector(t) for t in test_data]
     print c
@@ -182,6 +193,17 @@ def enumerate_spiral(l):
     coords.append(coord)
     return coords
 
+def test_hqsom_77_network():
+    output_size =17
+    hqsom = PaperFig3Hierarchy(65,17,513,output_size, use_pure_implementation = True)
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001, 16.0, 100.0, 4.0, 200.0, .1, .01
+    data_image = Square_Image(5,(1,1))
+    data = data_image.data()
+    hqsom.update(data,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+    print hqsom.activation_vector(data,False,True)
+    assert hqsom.activation_vector(data) != None
+    
+    
 def test_hqsom_77():
     #Generate the test sequence, note that we must do a spiral exposure to get the
     #correct temporal-spatial representations in the SOMS
@@ -214,19 +236,35 @@ def test_hqsom_77():
 
     #Paper settings
     #Make sure we don't use any of our "improvements"
-    output_size = 17
-    hqsom = PaperFig3Hierarchy(65,17,513,output_size, use_pure_implementation = True)
-    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001, 16.0, 100.0, 4.0, 200.0, .1, .01
-    run_name = "PAPER_"
-    num_cycles, data_sets, num_repeats = 150, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 5
+    #bottom_som_size, bottom_rsom_size, top_som_size, output_size = 65,17,513,17
+    #hqsom = PaperFig3Hierarchy(bottom_som_size,
+                               #bottom_rsom_size,
+                               #top_som_size,output_size, 
+                               #use_pure_implementation = True)
+    #g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001, 16.0, 100.0, 4.0, 250.0, .1, .01
+    #run_name = "EXACT_PAPER_"
+    #num_cycles, data_sets, num_repeats = 150, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 5
 
     
+    #Really good TWO classifier:
+    #bottom_som_size, bottom_rsom_size, top_som_size, output_size = 10,80,10,5
+    #hqsom = PaperFig3Hierarchy(bottom_som_size,
+                               #bottom_rsom_size,
+                               #top_som_size,output_size, 
+                               #use_pure_implementation = True)
+    #g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .2,.4,.1,.5, 10.0, 80.0, 14.0, 100.0, .8, .01
+    #run_name = "TWO_CLASS_"
+    #num_cycles, data_sets, num_repeats = 1, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 1
+
     #Our settings
-    #output_size = 4
-    #hqsom = PaperFig3Hierarchy(20,10,25,output_size)
-    #g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.08,.1,.008, 25.0, 80.0, 12.0, 75.0, .08, .005
-    #run_name = "OUR_"
-    #num_cycles, data_sets, num_repeats = 5, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 1
+    bottom_som_size, bottom_rsom_size, top_som_size, output_size = 200, 150, 200, 50
+    hqsom = PaperFig3Hierarchy(bottom_som_size,
+                               bottom_rsom_size,
+                               top_som_size,output_size, 
+                               use_pure_implementation = True)
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = 0.4,0.02,0.35,0.05,40.0,150.0,40.0,250.0,0.15,0.1
+    run_name = "13_OUR_SETTINGS_"
+    num_cycles, data_sets, num_repeats = 25, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 4
     
     seq_num = 0
     
@@ -256,7 +294,10 @@ def test_hqsom_77():
         for i in data_collection:
             result = hqsom.activation_vector(i)
             output_hash[data_name][result] += 1
-
+    print "Run: {}".format(run_name)
+    print "Using the parameters g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = {},{},{},{},{},{},{},{},{},{}".format(g1,g2,g3,g4,s1,s2,s3,s4,a1,a2)
+    print "Using {} cycles of each data set repeated {} times".format(num_cycles, num_repeats)
+    print "BSOM, BRSOM, TSOM, TRSOM sizes: {}, {}, {}, {}".format(bottom_som_size, bottom_rsom_size, top_som_size, output_size)
     for data_name, data_collection in data_sets:
         mode = np.argmax(output_hash[data_name])
         num_items = float(len(data_collection))
@@ -266,9 +307,119 @@ def test_hqsom_77():
         results = np.array(output_hash[data_name])
         print "Full Distribution over Final RSOM Map Space:"
         print results / num_items
-    MAP_Image(hqsom.bottom_hqsom_list[5].rsom.units,"output/FINAL_TOP_RSOM").save() 
+    MAP_Image(hqsom.bottom_hqsom_list[5].rsom.units,"output/{}FINAL_MIDDLE_RSOM".format(run_name)).save() 
 
+#WE ONLY SUPPORT wave files of the <b>same bitrate</b>
+def test_audio_gen():
+    
+    print "Loading songs into memory"
+    song_rock = audio.Spectrogram("data/music/Californication.wav")
+    song_techno = audio.Spectrogram("data/music/Everybody.wav")
+    song_classical = audio.Spectrogram("data/music/Brahms_Double_Concerto_in_A_minor_smaller.wav")
+    print "Done loading songs into memory"
+    songs = [
+                ("Rock", song_rock), 
+                ("Techno", song_techno), 
+                #("Classical", song_classical)
+            ]
+    song_types = [i for (i,j) in songs]
+    num_seconds, test_length = .5, 5
+    #Get num_second second slices of each song
+    print "Generating ffts"
+    raw_data = dict([(i,None) for i in songs])
+    for (song_type, song_file) in songs:
+        print "Generating data on the fly for {} song".format(song_type)
+        fft_length = song_file.sample_rate * num_seconds
+        #To get a power of 2
+        fft_length = int(2**np.ceil(np.log(fft_length)/np.log(2)));
+        print "Using fft_length of {}".format(fft_length)
+        raw_data[song_type] = song_file.get_spectrogram(fft_length)
+    
+    print "Reshaping ffts into length 128 inputs"
+    final_data = dict([(i,None) for i in songs])
+    for song_type in song_types:
+        data = raw_data[song_type]
+        new_data = np.zeros((data.shape[0], 128))
+        bucket_sum, spect = 0, None
+        for spect_index in range(len(data)):
+            print "{} of {} Spectrograms processed".format(spect_index, len(data))
+            spect = data[spect_index]
+            window_size = len(spect) / 128
+            bucket_sum = 0
+            for i in range(128):
+                bucket_sum = sum(spect[i*window_size:i*window_size+window_size])
+                new_data[spect_index][i] = bucket_sum
+            new_data[spect_index] = new_data[spect_index] / np.linalg.norm(new_data[spect_index])
+        final_data[song_type] = new_data 
+            
+    #plt.matshow(np.transpose(final_data["Rock"]))
+    #plt.matshow(np.transpose(final_data["Techno"]))
+    #plt.matshow(np.transpose(final_data["Classical"]))
+    #plt.show()
+    print "DONE generating test data"
+    print "Generating training sequences"
+    training_seq = dict([(i,[]) for i in song_types])
+    for song_type in song_types:
+        num_samples = len(final_data[song_type])
+        seq = training_seq[song_type]
+        index = 0
+        while index < num_samples:
+            for i in range(index, index+test_length):
+                if i < len(final_data[song_type]):
+                    seq.append(i)
+            index += np.random.randint(test_length, test_length*3)
+    
+    bottom_som_size, bottom_rsom_size, top_som_size, output_size = 30,40,30,5
+    hqsom = NaiveAudioClassifer(bottom_som_size,
+                            bottom_rsom_size,
+                            top_som_size,output_size, 
+                            use_pure_implementation = True)
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = 0.4,0.02, 0.45, 0.05,40.0,150.0,20.0,250.0, 0.4, 0.2
+    
+    num_cycles, num_repeats = 10, 4
+    run_name = "AUDIO_TEST"
+    seq_num = 0
+    
+    blank = np.zeros(128)
+    #return 
+    total_run_count = num_cycles * sum([(len(training_seq[x]))*num_repeats+100 for x in song_types])
+    for i in range(num_cycles):
+        for data_type in song_types:
+            for j in range(num_repeats):
+                for spectrum_index in training_seq[data_type]:
+                    hqsom.update(final_data[data_type][spectrum_index],g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+                    print "{} update {}/{}".format(data_type, seq_num, total_run_count)
+                    seq_num += 1
+            data_type = "BLANK"
+            for i in range(100):
+                hqsom.update(blank,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+                print "{} update {}/{}".format(data_type, seq_num, total_run_count)
+                seq_num += 1
+            
+    print "Run: {}".format(run_name)
+    print "Using the parameters g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = {},{},{},{},{},{},{},{},{},{}".format(g1,g2,g3,g4,s1,s2,s3,s4,a1,a2)
+    print "Using {} cycles of each data set repeated {} times".format(num_cycles, num_repeats)
+    print "BSOM, BRSOM, TSOM, TRSOM sizes: {}, {}, {}, {}".format(bottom_som_size, bottom_rsom_size, top_som_size, output_size)
+    song_types = [i for i in song_types] + ["BLANK"]
+    final_data["BLANK"] = blank.reshape(1,128)
+    for data_name in song_types:
+        print "#"*80
+        print "Results for {}".format(data_name)
+        data_collection = final_data[data_name]
+        results =[0]*output_size
+        for spect in data_collection:
+            results[hqsom.activation_vector(spect)] += 1
+        print "Got: {}".format(results)
+        #mode = np.argmax(output_hash[data_name])
+        #num_items = float(len(data_collection))
+        #print "#"*80
+        #print "Data Set: {}".format(data_name)
+        #print "Most Frequently Classified As (MODE): {}".format(mode)
+        #results = np.array(output_hash[data_name])
+        #print "Full Distribution over Final RSOM Map Space:"
+        #print results / num_items   
 
+    
 if __name__ == "__main__":
     try:
         opts, args = getopt.getopt(sys.argv[1:], "t:l", ["list","test="])
@@ -277,7 +428,7 @@ if __name__ == "__main__":
         print str(err) # will print something like "option -a not recognized"
 
     #So that we get reproduceable results
-    np.random.seed(15739)
+    np.random.seed(15717)
     for o,a in opts:
         if o in ("-t", "--test"):
             print "Running {} test:".format(a)

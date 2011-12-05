@@ -30,7 +30,7 @@ class Spectrogram(object):
         self.total_num_samples = self.wavfile.getnframes()
     
     # FFT_length should be a power of 2 for best efficiency
-    def getSpectrogram(self, FFT_length):
+    def get_spectrogram(self, FFT_length):
         num_fft_blocks = (self.total_num_samples / FFT_length) - 2
         
         # unpacked representation of a block of the wav file
@@ -38,6 +38,7 @@ class Spectrogram(object):
         
         # read in the data from the file
         for i in range(num_fft_blocks):
+            #print "Block {} of {} done".format(i, num_fft_blocks)
             tempb = self.wavfile.readframes(FFT_length)
             # %dB for 8-bit WAV, %dH for 16-bit, %dL for 32-bit, %dQ for 64-bit
             temp[i,:] = np.array(struct.unpack("%dH"%(FFT_length), \
@@ -62,7 +63,7 @@ class Spectrogram(object):
 
 if __name__ == "__main__":
     spectObj = Spectrogram("../audio_data/01-Technopolis.wav")
-    spectrogram = spectObj.getSpectrogram(256)
+    spectrogram = spectObj.get_spectrogram(256)
     
     print spectrogram
     print len(spectrogram)

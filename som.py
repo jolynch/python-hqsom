@@ -80,13 +80,19 @@ class SOM(object):
     def activation_vector(self, unit_input, continuous = False):
         val = np.zeros(len(self.units))
         if continuous:
-            # Since we minimize mse, I use that as the normalization for continuous
-            # activation vectors.  The square is to decrease the values of non matching
-            # units more
-            mse_bmu = self.mse(unit_input)**3
-            for i in range(len(self.units)):
-                val[i] = self.mse(unit_input, self.units[i])**3
-            val = np.array([ mse_bmu / v for v in val])
+            if self.pure or True:
+                #Since we want the paper's implementation, use what we think their activation function is
+                val = np.array([1.0/np.linalg.norm(unit_input-unit)**2 for unit in self.units])
+                val /= np.linalg.norm(val)
+            else:
+                # Since we minimize mse, I use that as the normalization for continuous
+                # activation vectors.  The square is to decrease the values of non matching
+                # units more
+                mse_bmu = self.mse(unit_input)**3
+                for i in range(len(self.units)):
+                    val[i] = self.mse(unit_input, self.units[i])**3
+                val = np.array([ mse_bmu / v for v in val])
+            
         else:
             bmu_index = self.bmu(unit_input)
             val[bmu_index] = 1
