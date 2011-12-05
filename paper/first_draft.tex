@@ -1,0 +1,88 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{enumerate}
+\usepackage{mdwlist}
+
+%opening
+\title{An Exploration of HQSOMS}
+\author{Ted Hilk, Joseph Lynch}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\section{Introduction}
+\section{Literature Review}
+\section{Hypothesis, Plan, and Risks}
+\section{System Design and Variables}
+HQSOM based networks consist of three basic building blocks: the Self Organizing Map (SOM), the
+Recursive Self Organizing Map (RSOM) and the SOM-RSOM pair. 
+\subsection{SOM}
+The basic SOM computional block is a fairly simple object that can either be shown data or asked to
+classify data. During the training stage, input vectors are applied to the input and then an
+update rule is applied over the entire map space that shifts map units towards the training data. 
+The purpose of these training steps is to create clusters of map units that are spatially similar to
+observed inputs.  Any given input can be mapped to its  
+\subsection{RSOM}
+\subsection{HQSOM}
+
+\section{Implementation Process and Results}
+\subsection{Implementation of SOM and RSOM Units}
+Self-Organizing Maps were implemented via a python class with three main methods: a constructor,
+an update method that takes a numpy array representing the input vector as well as the learning
+parameters (gamma, sigma, etc...) and modifies the internal state of the SOM accordingly, and a
+method to request the activation vector for a given input vector. Internally the SOM map is stored
+as a $nxm$ numpy array where $n$ is the input vector size and $m$ is the size of the map space. 
+During an update call, the Best Matching Map Unit (BMU) for any given input vector is determined
+using a linear search for the minimum Euclidean distance and then all map units near to the BMU as
+well as the BMU are shifted towards the input according to a Gaussian neighborhood function.  The
+standard SOM update rule was used and is re-stated for convenience in equation (1).  
+\begin{equation}
+ \bold{w_{i}}(t+1) = \bold{w_i}(t) + \gamma h_{ib}(t)(\bold{x}(t)-\bold{w_i}(t))
+\end{equation}
+
+A linear search was prefered due to the high dimensionality of the space <CITATION NEEDED>, and a
+Gaussian neighborhood function was chosen for simplicity <MENTION MEXICAN HAT>.  The activation
+method returns either a discrete or a continuous representation of the mean-squared error between
+the input and any given map unit. The discrete activation vector is simply a $m$ dimension vector
+with the BMU index for a given input vector set to 1 and all others set to 0. The continuous
+activation vector is a $m$ dimension vector that has been regularized according to (2), where $a_i$
+represents the $i$th position in the activation vector, $\bold{w_b}$ is the BMU, $\bold{x}$ is the
+input vector, $\bold{w_i}$ represents the $i$th map unit, and $MSE(\bold{x},\bold{y})$ indicates the
+mean squared error between vectors $\bold{x}$ and $\bold{y}$.
+\begin{equation}
+ a_i = \frac{MSE(\bold{w_b}, \bold{x})^3}{MSE(\bold{w_i},\bold{x})^3}
+\end{equation}
+This represention of an activation vector is based on the idea that the SOM is minimizing the
+total mean squared error over many iterations for any given data set, so it makes sense to use that
+as our relative metric between units in the map.  Note that the exponention is simply for
+regularization and is only useful for preserving orthoganality, which can drastically increase
+performance.
+\\
+Recursive Self-Organizing Maps are simply a subclass of the SOM that use the modified RSOM update
+rule as well as one additional variable: the recursive difference matrix.  The time decay parameter
+is passed in at every update call.
+\subsection{Basic Design of SOM-RSOM Pair}
+
+\subsection{Replication of First Experiment}
+\subsection{Replication of Second Experiment}
+\subsection{Extension into Audio}
+\section{Discussion and Conclusions}
+\section{References}
+
+\begin{thebibliography}{}
+\bibitem{HQSOM} J. W. Miller and P. H. Lommel. \textsc{Biomimetic sensory abstraction using
+hierarchical quilted self-organizing maps}. The Charles Stark Draper Laboratory, Inc.
+555 Technology Square, Cambridge, MA 02139-3563, USA. 2006.
+\end{thebibliography}
+
+\end{document}
