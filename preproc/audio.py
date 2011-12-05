@@ -13,6 +13,8 @@ import wave
 import numpy as np
 import struct
 
+import matplotlib.pyplot as plt
+
 
 
 # Frequency-domain representations of audio, from using a windowed FFT on
@@ -36,8 +38,9 @@ class Spectrogram(object):
         
         # read in the data from the file
         for i in range(num_fft_blocks):
-            tempb = self.wavfile.readframes(FFT_length);
-            temp[i,:] = np.array(struct.unpack("%dB"%(FFT_length), \
+            tempb = self.wavfile.readframes(FFT_length)
+            # %dB for 8-bit WAV, %dH for 16-bit, %dL for 32-bit, %dQ for 64-bit
+            temp[i,:] = np.array(struct.unpack("%dH"%(FFT_length), \
                         tempb),dtype=np.float64) - 128.0
         self.wavfile.close()
         
@@ -48,13 +51,31 @@ class Spectrogram(object):
         freq_pwr  = 10*np.log10(1e-20+np.abs(np.fft.rfft(temp,FFT_length)))
         
         # Plot the result
-        n_out_pts = (FFT_length / 2) + 1
-        y_axis = 0.5*float(self.sample_rate) / n_out_pts * np.arange(n_out_pts)
-        x_axis = (self.total_num_samps / float(self.sample_rate)) / \
-                 num_fft_blocks * np.arange(num_fft_blocks)
+#        n_out_pts = (FFT_length / 2) + 1
+#        x_axis = (self.total_num_samples / float(self.sample_rate)) / \
+#                 num_fft_blocks * np.arange(num_fft_blocks)
+#        y_axis 0.5*float(self.sample_rate) / n_out_pts * np.arange(n_out_pts)
+
+        return freq_pwr
 
 
 
+if __name__ == "__main__":
+    spectObj = Spectrogram("../audio_data/01-Technopolis.wav")
+    spectrogram = spectObj.getSpectrogram(256)
+    
+    print spectrogram
+    print len(spectrogram)
+    print np.shape(spectrogram)
+    
+    plt.matshow(np.transpose(spectrogram))
+    plt.show()
+    
+    
+    
+    
+    
+    
 
 '''
 Refs:
@@ -75,10 +96,5 @@ http://matplotlib.sourceforge.net/api/pyplot_api.html#matplotlib.pyplot.specgram
 
 DIFFERENT WINDOWING OPTIONS:
 http://en.wikipedia.org/wiki/Window_function#Hamming_window
-
-
 '''
-        
-        
-        
         
