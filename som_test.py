@@ -67,6 +67,8 @@ def test_rsom():
     for i in range(1000):
         rsom1.update(input_vectors[i%2], rate, spread, alpha)
     rsom1.update(input_vectors[2], rate, spread, alpha)
+    rsom1.reset()
+    assert rsom1.differences[0][0] == 0
     for i in range(3):
         print "Got MSE of {}".format(rsom1.mse(input_vectors[i]))
         print "Activation vector: {}".format(rsom1.activation_vector(input_vectors[i], True))
@@ -155,7 +157,7 @@ def test_hqsom_noise():
 
 def test_hqsom_noise_multiple():
     num_errors, num_tests = 0, 5
-    np.random.seed()
+    #np.random.seed()
     for i in range(num_tests):
         try:
             test_hqsom_noise()    

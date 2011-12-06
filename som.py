@@ -55,10 +55,12 @@ class SOM(object):
         bmu_index = self.bmu(unit_input)
         bmu = self.units[bmu_index]
         mse = self.mse(unit_input)
+        if not self.pure:
+            rate = 2 * rate * np.exp(-np.power(self.time, 1/10.0))
+            self.time += 1
         for weight_index in range(len(self.units)):
             w_t = self.units[weight_index]
-            if not self.pure:
-                rate = rate * exp(-sqrt(self.time))
+
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_index, mse, unit_input, spread)*(unit_input-w_t)
        
         #print "MSE: {}".format(mse)
@@ -117,7 +119,7 @@ class RSOM(SOM):
     
     #So that we don't have to flush the RSOM with 0s all the damn time
     def reset(self):
-        self.differences = np.zeros((output_size, input_size))
+        self.differences = np.zeros(self.differences.shape)
     
     #RSOM update rule
     # Parameters same as SOM update rule except for time_decay
