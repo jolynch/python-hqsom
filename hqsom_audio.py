@@ -172,18 +172,23 @@ class Hierarchy1D(Hierarchy):
         
         
     # This is much simpler than the figure 3 hierarchy's update method signature
-    def update(self, full_input):
+    def update(self, full_input, verbose=False):
         #print "Training on {}".format(full_input)
+        if verbose:
+            print "Following is full input"
+            print full_input
         prev_layer_output = full_input
         next_layer_input = []
         for i in range(len(self.layers)):
+            if verbose:
+                print "#"*80
+                print "Entering layer {}".format(i)
             layer = self.layers[i]
             layer_cf = self.layer_configs[i]
             for j in range(len(layer)):
                 node = layer[j]
                 start_idx = j*(layer_cf.node_inputs-layer_cf.overlap)
-                node.update(prev_layer_output[
-                                  start_idx : start_idx+layer_cf.node_inputs ],
+                node.update(prev_layer_output[start_idx : start_idx+layer_cf.node_inputs],
                             layer_cf.gamma_s, layer_cf.gamma_r,
                             layer_cf.sigma_s, layer_cf.sigma_r,
                             layer_cf.alpha_r)
@@ -191,7 +196,9 @@ class Hierarchy1D(Hierarchy):
                             node.activation_vector(
                                 prev_layer_output[
                                   start_idx : start_idx+layer_cf.node_inputs ]))
-            prev_layer_output = next_layer_input
+            prev_layer_output = next_layer_input/np.linalg.norm(next_layer_input)
+            if verbose:
+                print "Passing {} to next layer".format(prev_layer_output)
             next_layer_input = []
 
     
@@ -205,7 +212,8 @@ class Hierarchy1D(Hierarchy):
     '''
     def activation_vector(self, full_input, 
                           continuous_internal=False,
-                          continuous_output=False):
+                          continuous_output=False,
+                          verbose = False):
         # keep track of input to a given layer and output to be fed to the
         #         layer above it
         prev_layer_output = full_input
@@ -225,8 +233,11 @@ class Hierarchy1D(Hierarchy):
                                     prev_layer_output[
                                       start_idx : start_idx+layer_cf.node_inputs ]))
             else: # we're at the top layer, a single node
-                return layer[0].activation_vector(prev_layer_output)
-            prev_layer_output = next_layer_input
+                return layer[0].activation_vector(prev_layer_output, continuous_output)
+            prev_layer_output = next_layer_input/np.linalg.norm(next_layer_input)
+            if verbose:
+                print "Prev layer input for layer: {}".format(i)
+                print prev_layer_output
             next_layer_input = []
 
 
@@ -235,6 +246,7 @@ class Hierarchy1D(Hierarchy):
 
 
 if __name__ == "__main__":
+    
     
     '''
     basic testing
@@ -267,7 +279,7 @@ if __name__ == "__main__":
         test_hierarchy_1.update(bogus_data)
         print "\n\n\n"
     
-    print test_hierarchy_1.activation_vector(bogus_data)
+    print test_hierarchy_1.activation_vector(bogus_data, False, True)
     
     
     

@@ -20,6 +20,7 @@ class SOM(object):
         self.mse_ema = 1e-20
         #If we consider this a non-pure SOM, use our "improvements"
         self.pure = pure
+        self.time = 0
 
     #Best matching unit, returns the index of the bmu
     def bmu(self, unit_input):
@@ -56,6 +57,8 @@ class SOM(object):
         mse = self.mse(unit_input)
         for weight_index in range(len(self.units)):
             w_t = self.units[weight_index]
+            if not self.pure:
+                rate = rate * exp(-sqrt(self.time))
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_index, mse, unit_input, spread)*(unit_input-w_t)
        
         #print "MSE: {}".format(mse)
@@ -80,7 +83,7 @@ class SOM(object):
     def activation_vector(self, unit_input, continuous = False):
         val = np.zeros(len(self.units))
         if continuous:
-            if self.pure or True:
+            if self.pure:
                 #Since we want the paper's implementation, use what we think their activation function is
                 val = np.array([1.0/np.linalg.norm(unit_input-unit)**2 for unit in self.units])
                 val /= np.linalg.norm(val)
@@ -111,6 +114,10 @@ class RSOM(SOM):
     def bmu_r(self, unit_input):
         distances = [np.linalg.norm(diff) for diff in self.differences]
         return np.argmin(distances)
+    
+    #So that we don't have to flush the RSOM with 0s all the damn time
+    def reset(self):
+        self.differences = np.zeros((output_size, input_size))
     
     #RSOM update rule
     # Parameters same as SOM update rule except for time_decay

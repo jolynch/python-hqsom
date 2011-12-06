@@ -48,6 +48,9 @@ class HQSOM(object):
             return self.rsom.activation_vector(som_output, True)
         else:
             return self.rsom.bmu(som_output)
+            
+    def reset(self):
+        self.rsom.reset()
 
 
 '''
@@ -88,7 +91,7 @@ class PaperFig3Hierarchy(Hierarchy):
                gamma_som_bottom=.3, gamma_rsom_bottom=.3,
                sigma_som_bottom=.8, sigma_rsom_bottom=.8, alpha_bottom=.5,
                gamma_som_top=.3, gamma_rsom_top=.3,
-               sigma_som_top=.8, sigma_rsom_top=.8, alpha_top=.5):
+               sigma_som_top=.8, sigma_rsom_top=.8, alpha_top=.5, verbose=False):
         #print "Training on {}".format(full_input)
         # slice up input image and use it to update the layer-1 HQSOM base units
         bottom_outputs = np.zeros(9)
@@ -110,9 +113,12 @@ class PaperFig3Hierarchy(Hierarchy):
                                              sigma_rsom_bottom, 
                                              alpha_bottom)
             bottom_outputs[i]= self.bottom_hqsom_list[i].activation_vector(unit_input)
-        
+        hqsom_input = np.array(bottom_outputs)
+        hqsom_input = hqsom_input / np.linalg.norm(hqsom_input)
+        if verbose:
+            print "Passing: {} ".format(hqsom_input)
         # use outputs from layer-1 HQSOM units to update top-level one
-        self.top_hqsom.update(np.array(bottom_outputs),
+        self.top_hqsom.update(hqsom_input,
                                 gamma_som_top, gamma_rsom_top,
                                 sigma_som_top, sigma_rsom_top, alpha_top)
     
@@ -147,8 +153,11 @@ class PaperFig3Hierarchy(Hierarchy):
 
             bottom_outputs[i]= self.bottom_hqsom_list[i].activation_vector(unit_input)
         
+        hqsom_input = np.array(bottom_outputs)
+        hqsom_input = hqsom_input / np.linalg.norm(hqsom_input)
+        #print "Passing: {} ".format(hqsom_input)
         # use outputs from layer-1 HQSOM units to get output from top-level one
-        return self.top_hqsom.activation_vector(bottom_outputs, continuous_output)
+        return self.top_hqsom.activation_vector(hqsom_input , continuous_output)
 
 '''
 Configuration object to create hierarchies along one dimension

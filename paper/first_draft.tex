@@ -25,13 +25,21 @@
 \section{Hypothesis, Plan, and Risks}
 \section{System Design and Variables}
 HQSOM based networks consist of three basic building blocks: the Self Organizing Map (SOM), the
-Recursive Self Organizing Map (RSOM) and the SOM-RSOM pair. 
+Recursive Self Organizing Map (RSOM) and the SOM-RSOM pair (HQSOM). 
 \subsection{SOM}
-The basic SOM computional block is a fairly simple object that can either be shown data or asked to
-classify data. During the training stage, input vectors are applied to the input and then an
-update rule is applied over the entire map space that shifts map units towards the training data. 
-The purpose of these training steps is to create clusters of map units that are spatially similar to
-observed inputs.  Any given input can be mapped to its  
+The basic SOM computional block is a fairly simple object that can either be trained on data or
+asked to classify data. The SOM is made up of a $mxn$ matrix that maps inputs of dimension $m$
+to outputs of dimension $n$.  For example a SOM designed to take in 3d vectors and output a 5d
+vector would look like:
+$\begin{pmatrix}
+.3 & .7 & .1  & .14 & .01\\
+.3 & .1 & .01 & .16 & .9\\
+.3 & .03 & .8 & .7  & .01
+\end{pmatrix}$
+
+During the training stage, input vectors are applied to the input and then an
+update rule is applied over the entire map space that shifts map units that are nearest to the input
+data towards the input data. When an input $\bold{x}(t)$ is applied to the SOM, the best matching 
 \subsection{RSOM}
 \subsection{HQSOM}
 
@@ -45,12 +53,8 @@ as a $nxm$ numpy array where $n$ is the input vector size and $m$ is the size of
 During an update call, the Best Matching Map Unit (BMU) for any given input vector is determined
 using a linear search for the minimum Euclidean distance and then all map units near to the BMU as
 well as the BMU are shifted towards the input according to a Gaussian neighborhood function.  The
-standard SOM update rule was used and is re-stated for convenience in equation ($\ref{eq:UPDATE}$).
+standard SOM update rule was used as per equation ($\ref{eq:UPDATE}$).
  
-\begin{equation} \label{eq:UPDATE}
- \bold{w_{i}}(t+1) = \bold{w_i}(t) + \gamma h_{ib}(t)(\bold{x}(t)-\bold{w_i}(t))
-\end{equation}
-
 A linear search was prefered due to the high dimensionality of the space <CITATION NEEDED>, and a
 Gaussian neighborhood function was chosen for simplicity <MENTION MEXICAN HAT>.  The activation
 method returns either a discrete or a continuous representation of the mean-squared error between

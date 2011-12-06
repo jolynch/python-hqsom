@@ -6,9 +6,13 @@ import preproc.audio as audio
 import getopt, sys
 import traceback
 import matplotlib.pyplot as plt
+import pickle
 
 
-tests = ("som","rsom", "hqsom", "hqsom_noise", "hqsom_noise_multiple", "image_gen", "hqsom_77_network", "hqsom_77", "audio_gen")
+tests = ("som","rsom", "hqsom", "hqsom_noise", "hqsom_noise_multiple", "image_gen", "hqsom_77_network", "hqsom_77", "audio")
+np.set_printoptions(precision=3)
+np.set_printoptions(suppress=True)
+
 
 input_vectors = np.array([
         [0.1 , 0.1 , 0.1 , 0.1],
@@ -229,7 +233,7 @@ def test_hqsom_77():
                 data_container.append(image_data.data())
                 image_data.save("data/{}_#{}#_".format(data_type, str(len(data_container)).zfill(2)))
     
-    blank_data = [Data_Image().data() for i in range(100)]
+    blank_data = [Data_Image().data() for i in range(20)]
     #print len(square_data)
     #print len(diamond_data)
     #print len(x_data)
@@ -242,7 +246,7 @@ def test_hqsom_77():
                                #top_som_size,output_size, 
                                #use_pure_implementation = True)
     #g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = .1,.01,.1,.001, 16.0, 100.0, 4.0, 250.0, .1, .01
-    #run_name = "EXACT_PAPER_"
+    #run_name = "PAPER_FEWER_BLANK_"
     #num_cycles, data_sets, num_repeats = 150, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 5
 
     
@@ -263,8 +267,8 @@ def test_hqsom_77():
                                top_som_size,output_size, 
                                use_pure_implementation = True)
     g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = 0.4,0.02,0.35,0.05,40.0,150.0,40.0,250.0,0.15,0.1
-    run_name = "13_OUR_SETTINGS_"
-    num_cycles, data_sets, num_repeats = 25, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 4
+    run_name = "15_OUR_SETTINGS_"
+    num_cycles, data_sets, num_repeats = 75, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 5
     
     seq_num = 0
     
@@ -310,8 +314,7 @@ def test_hqsom_77():
     MAP_Image(hqsom.bottom_hqsom_list[5].rsom.units,"output/{}FINAL_MIDDLE_RSOM".format(run_name)).save() 
 
 #WE ONLY SUPPORT wave files of the <b>same bitrate</b>
-def test_audio_gen():
-    
+def test_audio():
     print "Loading songs into memory"
     song_rock = audio.Spectrogram("data/music/Californication.wav")
     song_techno = audio.Spectrogram("data/music/Everybody.wav")
@@ -320,38 +323,46 @@ def test_audio_gen():
     songs = [
                 ("Rock", song_rock), 
                 ("Techno", song_techno), 
-                #("Classical", song_classical)
+                ("Classical", song_classical)
             ]
     song_types = [i for (i,j) in songs]
-    num_seconds, test_length = .5, 5
-    #Get num_second second slices of each song
-    print "Generating ffts"
-    raw_data = dict([(i,None) for i in songs])
-    for (song_type, song_file) in songs:
-        print "Generating data on the fly for {} song".format(song_type)
-        fft_length = song_file.sample_rate * num_seconds
-        #To get a power of 2
-        fft_length = int(2**np.ceil(np.log(fft_length)/np.log(2)));
-        print "Using fft_length of {}".format(fft_length)
-        raw_data[song_type] = song_file.get_spectrogram(fft_length)
-    
-    print "Reshaping ffts into length 128 inputs"
-    final_data = dict([(i,None) for i in songs])
-    for song_type in song_types:
-        data = raw_data[song_type]
-        new_data = np.zeros((data.shape[0], 128))
-        bucket_sum, spect = 0, None
-        for spect_index in range(len(data)):
-            print "{} of {} Spectrograms processed".format(spect_index, len(data))
-            spect = data[spect_index]
-            window_size = len(spect) / 128
-            bucket_sum = 0
-            for i in range(128):
-                bucket_sum = sum(spect[i*window_size:i*window_size+window_size])
-                new_data[spect_index][i] = bucket_sum
-            new_data[spect_index] = new_data[spect_index] / np.linalg.norm(new_data[spect_index])
-        final_data[song_type] = new_data 
-            
+    num_seconds, test_length  = .1, 4
+    #Get num_second second slices of each song, looking to a cache first
+    try:
+        (n,saved_songs,final_data) = pickle.load(open("cache.p", "rb"))
+        if not n == num_seconds or not saved_songs == tuple(song_types):
+            raise Exception
+        print "Found data in cache, skipping generation"
+    except:
+        print "Generating ffts"
+        raw_data = dict([(i,None) for i in songs])
+        for (song_type, song_file) in songs:
+            print "Generating data on the fly for {} song".format(song_type)
+            fft_length = song_file.sample_rate * num_seconds
+            #To get a power of 2
+            fft_length = int(2**np.ceil(np.log(fft_length)/np.log(2)));
+            print "Using fft_length of {}".format(fft_length)
+            raw_data[song_type] = song_file.get_spectrogram(fft_length)
+        
+        print "Reshaping ffts into length 128 inputs"
+        final_data = {}
+        for song_type in song_types:
+            data = raw_data[song_type]
+            new_data = np.zeros((data.shape[0], 128))
+            bucket_sum, spect = 0, None
+            for spect_index in range(len(data)):
+                print "{} of {} Spectrograms processed".format(spect_index, len(data))
+                spect = data[spect_index]
+                window_size = len(spect) / 128
+                bucket_sum = 0
+                for i in range(128):
+                    #bucket_sum = np.mean(spect[i*window_size:i*window_size+window_size])
+                    new_data[spect_index][i] = spect[i*window_size]
+                #new_data[spect_index] = new_data[spect_index] - min(new_data[spect_index])
+                #new_data[spect_index] = new_data[spect_index] / np.linalg.norm(new_data[spect_index])
+                
+            final_data[song_type] = new_data 
+        pickle.dump((num_seconds, tuple(song_types), final_data), open("cache.p","wb"))
     #plt.matshow(np.transpose(final_data["Rock"]))
     #plt.matshow(np.transpose(final_data["Techno"]))
     #plt.matshow(np.transpose(final_data["Classical"]))
@@ -361,45 +372,94 @@ def test_audio_gen():
     training_seq = dict([(i,[]) for i in song_types])
     for song_type in song_types:
         num_samples = len(final_data[song_type])
-        seq = training_seq[song_type]
-        index = 0
-        while index < num_samples:
-            for i in range(index, index+test_length):
-                if i < len(final_data[song_type]):
-                    seq.append(i)
-            index += np.random.randint(test_length, test_length*3)
+        index = np.random.randint(10)
+        while index+test_length < num_samples:
+            training_seq[song_type].extend(range(index, index+test_length))
+            index = index + 2*test_length
+    #for key in training_seq:
+        #training_seq[key] = training_seq[key]+training_seq[key][::-1]
+    '''
+    @param numHQSOMs - how many nodes in this layer
+    @param node_inputs - how many inputs per node
+    @param total_inputs - how many total inputs to the layer
+    @param overlap - how much overlap you want between inputs for nodes in this
+                     layer, as a number of inputs to overlap between any two
+                     adjacent nodes.  Yes, this is overdetermined.  It's for
+                     the sake of clarity when using it.
     
-    bottom_som_size, bottom_rsom_size, top_som_size, output_size = 30,40,30,5
-    hqsom = NaiveAudioClassifer(bottom_som_size,
-                            bottom_rsom_size,
-                            top_som_size,output_size, 
-                            use_pure_implementation = True)
-    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = 0.4,0.02, 0.45, 0.05,40.0,150.0,20.0,250.0, 0.4, 0.2
+    Example: Suppose I want 40 total inputs, 3 nodes taking 20 inputs each,
+                overlap of 10 between adjacent pairs.  Node 1 gets inputs 1-20;
+                node 2 gets inputs 11-30; node 3 gets inputs 21-40.
     
-    num_cycles, num_repeats = 10, 4
+    @param m_s - SOM map size for each node in layer
+    @param gamma_s - SOM gamma - learning rate
+    @param sigma_s - SOM sigma - learning region size scale factor
+    
+    @param m_r - RSOM map size for each node
+    @param alpha_r - RSOM alpha - temporal leaky integrator leak rate
+    @param gamma_r - RSOM gamma - see above
+    @param sigma_r - RSOM sigma - see above
+    LayerConf1D (numHQSOMs, node_inputs, total_inputs, overlap,
+                 m_s, gamma_s, sigma_s,
+                 m_r, alpha_r, gamma_r, sigma_r,
+                use_pure_implementation = False):
+    '''
+    output_size = 32
+    hqsom = Hierarchy1D(
+        ## layer 1: 8 nodes over 16 inputs each
+        #LayerConf1D(8, 16,   128, 0,
+                    #40, 0.1, 1.0,
+                    #20, 0.4, 0.1, 50.0,True),
+        ###layer 2: 1 node over the 8 in layer 2
+        #LayerConf1D(1,  8,   8, 0,
+                    #40, 0.1, 1.0,
+                    #output_size, 0.1, 0.08, 2.0,True))
+         
+        #Too slow, possibly better
+        # layer 1: 16 nodes over 8 inputs each
+        # layer 1: 16 nodes over 8 inputs each
+        LayerConf1D(16, 8, 128, 0,
+                    128, 0.3, 2.0,
+                    64, 0.1, 0.1, 1.0, True),
+        # layer 2: 4 nodes over 4 inputs each
+        LayerConf1D(4, 4, 16, 0,
+                    32, 0.15, 1.0,
+                    16, 0.03, 0.05, 2.0, True),
+        # layer 3: 1 node over the 4 in layer 2
+        LayerConf1D(1, 4, 4, 0,
+                    32, 0.1, 2.0,
+                    output_size, 0.001, 0.02, 4.0, True))
+    #hqsom = NaiveAudioClassifier(bottom_som_size,
+                               #bottom_rsom_size,
+                               #top_som_size,output_size, 
+                               #use_pure_implementation = True)
+    num_cycles, num_repeats = 4, 1
     run_name = "AUDIO_TEST"
     seq_num = 0
-    
+           
     blank = np.zeros(128)
-    #return 
-    total_run_count = num_cycles * sum([(len(training_seq[x]))*num_repeats+100 for x in song_types])
+    print song_types
+    total_run_count = num_cycles * sum([(len(training_seq[x]))*num_repeats+10 for x in song_types])
     for i in range(num_cycles):
         for data_type in song_types:
             for j in range(num_repeats):
                 for spectrum_index in training_seq[data_type]:
-                    hqsom.update(final_data[data_type][spectrum_index],g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+                    #print "updating with:"
+                    #print final_data[data_type][spectrum_index]
+                    hqsom.update(final_data[data_type][spectrum_index])
+                    print hqsom.activation_vector(final_data[data_type][spectrum_index], False, True)
                     print "{} update {}/{}".format(data_type, seq_num, total_run_count)
                     seq_num += 1
             data_type = "BLANK"
-            for i in range(100):
-                hqsom.update(blank,g1,g2,s1,s2,a1,g3,g4,s3,s4,a2)
+            for i in range(10):
+                hqsom.update(blank)
+                print hqsom.activation_vector(blank, False, True)
                 print "{} update {}/{}".format(data_type, seq_num, total_run_count)
+                    
                 seq_num += 1
             
     print "Run: {}".format(run_name)
-    print "Using the parameters g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = {},{},{},{},{},{},{},{},{},{}".format(g1,g2,g3,g4,s1,s2,s3,s4,a1,a2)
     print "Using {} cycles of each data set repeated {} times".format(num_cycles, num_repeats)
-    print "BSOM, BRSOM, TSOM, TRSOM sizes: {}, {}, {}, {}".format(bottom_som_size, bottom_rsom_size, top_som_size, output_size)
     song_types = [i for i in song_types] + ["BLANK"]
     final_data["BLANK"] = blank.reshape(1,128)
     for data_name in song_types:
@@ -409,6 +469,7 @@ def test_audio_gen():
         results =[0]*output_size
         for spect in data_collection:
             results[hqsom.activation_vector(spect)] += 1
+            #print hqsom.activation_vector(spect, False, True)
         print "Got: {}".format(results)
         #mode = np.argmax(output_hash[data_name])
         #num_items = float(len(data_collection))

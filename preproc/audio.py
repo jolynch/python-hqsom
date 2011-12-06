@@ -62,7 +62,8 @@ class Spectrogram(object):
 
 
 if __name__ == "__main__":
-    spectObj = Spectrogram("../audio_data/01-Technopolis.wav")
+    #spectObj = Spectrogram("../audio_data/01-Technopolis.wav")
+    #spectObj = Spectrogram("../data/music/Californication.wav")
     spectrogram = spectObj.get_spectrogram(256)
     
     print spectrogram
