@@ -242,7 +242,12 @@ class Hierarchy1D(Hierarchy):
                 print prev_layer_output
             next_layer_input = []
 
-
+    # reset the RSOM EMAs of all nodes.  this allows us to prevent spurious
+    # associations between songs when switching to a new song.
+    def reset(self):
+        for layer in self.layers:
+            for node in layer:
+                node.reset()
 
 
 
