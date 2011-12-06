@@ -13,6 +13,7 @@ Using pstats in a Python shell is best, e.g. ipython
 from som_test import *
 import cProfile
 
+a = "hqsom_77"
 cProfile.run("eval(\"test_\"+a)()", "test_results.pstats")
 
 
