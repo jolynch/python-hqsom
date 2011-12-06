@@ -6,28 +6,30 @@ particular songs.
 
 Procedure:
 
-1. Grab three songs; isolate n 1-second snippets from each; convert to WAV.
-    i. ideally choose n even.
+1. Grab three songs; isolate 30 seconds; convert to WAV.
 
-2. Arbitrarily select n-3 snippets from each song to be in-sample data.
+2. Arbitrarily select 5 seconds from each song to be out-of-sample data.
 
 3. Select a network from one of the below designs.
 
 4. Train the network on the in-sample data using the audio train/test framework.
     i. choose a song
     ii. choose a spectrogram FFT window size, ideally pretty long
-    iii. generate spectrograms for each of the in-sample snippets
-    iv. construct a fully-connected graph between the snippets as nodes
-    v. generate an Eulerian path on the graph
-        a. this is why we wanted n to be even
-        b. then n-3 is odd so an Eulerian path exists
-    vi. cycle through the Eulerian path in forward and reverse order to train
-                the network for this specific song
-    vii. if your top-level node is not constant, you're doing it wrong
-    viii. feed the network a long period of silence
-    ix. if your top-level node did not change to a different constant, you're
-                likewise doing it wrong
-    x. choose the next song; GOTO (i)
+    iii. generate spectrograms for each of the in-sample sections
+    iv. for each song, feed the entire spectrogram to the network, using
+            high gamma and sigma
+        a. reset the network at all levels when finished with a given song.
+                i.e. reset the rsom EMA to zero.
+        b. cycle through all songs a few times
+    v. if your top-level node is not constant, you're doing it wrong
+    vi. make sigma smaller, but leave gamma fairly high
+    vii. rotate through songs 5 seconds or something at a time instead of entire
+            song.  reset network between songs.
+    viii. make sigma smaller and gamma smaller
+    ix. rotate through very short sections of songs, and cycle between them
+            A LARGE NUMBER OF TIMES.
+    x. if your top-level node does not change to a different constant shortly
+            after switching to a new song, you're likewise doing it wrong
 
 5. Test classification performance
     i. choose a song
