@@ -114,7 +114,8 @@ class PaperFig3Hierarchy(Hierarchy):
                                              alpha_bottom)
             bottom_outputs[i]= self.bottom_hqsom_list[i].activation_vector(unit_input)
         hqsom_input = np.array(bottom_outputs)
-        hqsom_input = hqsom_input / np.linalg.norm(hqsom_input)
+        #Normalizing reduces information apparently
+        #hqsom_input = hqsom_input / np.linalg.norm(hqsom_input)
         if verbose:
             print "Passing: {} ".format(hqsom_input)
         # use outputs from layer-1 HQSOM units to update top-level one
@@ -154,10 +155,16 @@ class PaperFig3Hierarchy(Hierarchy):
             bottom_outputs[i]= self.bottom_hqsom_list[i].activation_vector(unit_input)
         
         hqsom_input = np.array(bottom_outputs)
-        hqsom_input = hqsom_input / np.linalg.norm(hqsom_input)
+        #normalizing apparently kills information
+        #hqsom_input = hqsom_input / np.linalg.norm(hqsom_input)
         #print "Passing: {} ".format(hqsom_input)
         # use outputs from layer-1 HQSOM units to get output from top-level one
         return self.top_hqsom.activation_vector(hqsom_input , continuous_output)
+    
+    def reset(self):
+        for bottom in self.bottom_hqsom_list:
+            bottom.reset()
+        self.top_hqsom.reset()
 
 '''
 Configuration object to create hierarchies along one dimension

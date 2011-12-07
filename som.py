@@ -36,7 +36,11 @@ class SOM(object):
         #e^(-oo) = 0
         if mse_bmu < eff_zero:
             return eff_zero
-        val =  max(np.exp(- abs(unit_i - unit_bmu)**3 / (mse_bmu * spread)), eff_zero)
+        if self.pure:
+            val =  max(np.exp(- abs(unit_i - unit_bmu)**2 / (mse_bmu * spread)), eff_zero)
+        else:
+            t = abs(unit_i - unit_bmu)**2
+            val = max((1-t/spread)*np.exp(- t / (mse_bmu * spread)), eff_zero)
         return val
 
     #SOM update rule
@@ -55,9 +59,7 @@ class SOM(object):
         bmu_index = self.bmu(unit_input)
         bmu = self.units[bmu_index]
         mse = self.mse(unit_input)
-        if not self.pure:
-            rate = 2 * rate * np.exp(-np.power(self.time, 1/10.0))
-            self.time += 1
+
         for weight_index in range(len(self.units)):
             w_t = self.units[weight_index]
 
@@ -67,7 +69,8 @@ class SOM(object):
         #print "EMA: {}".format(self.mse_ema)
         if not self.pure:
             if mse / self.mse_ema > 10:
-                print "Massive Miss!! Stealing BMU {}".format(bmu_index)
+                self.t = 0
+                print "Unexpectedly Large Miss!! Stealing BMU {}".format(bmu_index)
                 print "Used effective sigma {} for update".format(mse * spread)
                 self.units[bmu_index] = self.units[bmu_index] + .5*(unit_input - self.units[bmu_index])
             self.mse_ema = max(.9*(self.mse_ema) + .1*(mse), 1e-20)
@@ -97,7 +100,7 @@ class SOM(object):
                 for i in range(len(self.units)):
                     val[i] = self.mse(unit_input, self.units[i])**3
                 val = np.array([ mse_bmu / v for v in val])
-            
+            val /= np.linalg.norm(val)
         else:
             bmu_index = self.bmu(unit_input)
             val[bmu_index] = 1
@@ -120,6 +123,8 @@ class RSOM(SOM):
     #So that we don't have to flush the RSOM with 0s all the damn time
     def reset(self):
         self.differences = np.zeros(self.differences.shape)
+        r_i = np.random.randint(len(self.differences))
+        self.differences[r_i] = .001
     
     #RSOM update rule
     # Parameters same as SOM update rule except for time_decay
@@ -141,11 +146,13 @@ class RSOM(SOM):
             y_t = self.differences[weight_index]
             self.units[weight_index] = w_t + rate*self.nb_func(weight_index, bmu_r_index, mse, unit_input, spread)*y_t
             self.differences[weight_index] = (1-time_decay)*self.differences[weight_index] + time_decay * (unit_input-w_t)
-        
         if not self.pure:
-            if mse / self.mse_ema > 10:
-                print "Massive Miss!! Stealing BMU {}".format(bmu_r_index)
-                print "Used effective sigma {} for update".format(mse * spread)
-                self.units[bmu_r_index] = self.units[bmu_r_index] + .5*(unit_input - self.units[bmu_r_index])
-            self.mse_ema = max(.9*(self.mse_ema) + .1*(mse), 1e-20)
+            rate = 2 * rate * np.exp(-np.power(self.time, 1/16.0))
+            self.time += 1 
+        #if not self.pure:
+            #if mse / self.mse_ema > 10:
+                #print "Massive Miss!! Stealing BMU {}".format(bmu_r_index)
+                #print "Used effective sigma {} for update".format(mse * spread)
+                #self.units[bmu_r_index] = self.units[bmu_r_index] + .5*(unit_input - self.units[bmu_r_index])
+            #self.mse_ema = max(.9*(self.mse_ema) + .1*(mse), 1e-20)
 

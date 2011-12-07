@@ -125,6 +125,12 @@ class LayerConf1D(object):
         self.gamma_r = gamma_r
         self.sigma_r = sigma_r
         self.use_pure_implementation = use_pure_implementation
+    
+    def __repr__(self):
+        s = ""
+        for attr, value in self.__dict__.iteritems():
+            s += "{} => {} \n".format(attr, value)
+        return s
 
 
 
@@ -198,7 +204,7 @@ class Hierarchy1D(Hierarchy):
                             node.activation_vector(
                                 prev_layer_output[
                                   start_idx : start_idx+layer_cf.node_inputs ]))
-            prev_layer_output = next_layer_input/np.linalg.norm(next_layer_input)
+            prev_layer_output = next_layer_input
             if verbose:
                 print "Passing {} to next layer".format(prev_layer_output)
             next_layer_input = []
@@ -236,7 +242,7 @@ class Hierarchy1D(Hierarchy):
                                       start_idx : start_idx+layer_cf.node_inputs ]))
             else: # we're at the top layer, a single node
                 return layer[0].activation_vector(prev_layer_output, continuous_output)
-            prev_layer_output = next_layer_input/np.linalg.norm(next_layer_input)
+            prev_layer_output = next_layer_input
             if verbose:
                 print "Prev layer input for layer: {}".format(i)
                 print prev_layer_output
