@@ -1,5 +1,4 @@
 \documentclass[a4paper,10pt]{article}
-
 \usepackage{graphicx}
 \usepackage{amsfonts}
 \usepackage{amssymb}
@@ -7,22 +6,196 @@
 \usepackage{latexsym}
 \usepackage{enumerate}
 \usepackage{mdwlist}
-
+% Set some parameters to make the document look better.
+\setlength{\parskip}{0.25pc}
+%\setlength{\parindent}{0pt}
 %opening
-\title{An Exploration of HQSOMS}
-\author{Ted Hilk, Joseph Lynch}
-
+%\title{An Exploration of HQSOMs}
+\title{An Exploration of Hierarchical Quilted Self-Organizing Maps}
+\author{Theodore Hilk, Joseph Lynch}
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-
+\noindent We explore the paper ``Biomimetic sensory abstraction using hierarchical quilted
+self-organizing maps," by J. W. Miller and P. H. Lommel of the Charles Stark Draper Laboratory. We
+place the paper in historical context, provide a high-level summary, and briefly review related
+literature. We give both a qualitative overview and a specific mathematical formulation of the
+hierarchical quilted self-organizing map (HQSOM) model, and provide a thorough, reproducible record
+of our design and implementation process for a Python-based HQSOM framework. We present our results
+from conducting each of the experiments described in Miller and Lommel's paper, which involved the
+classification of various shapes invariant to shift and scale transformations in 3x3- and 7x7-pixel
+fields. We obtain results consistent with those of the authors, albeit noting considerable
+dependence on parameter values and the ambiguity of a certain key formula in the paper.
+Subsequently, we develop and test several improvements to the HQSOM algorithm itself.  Some
+result in outperforming the original in classification tasks, especially when noise is introduced.
+We then implement preprocessing adaptations to allow us to apply both the original and improved
+HQSOM algorithms to audio, and we succeed in developing a genre classifier with excellent
+out-of-sample performance. We conclude by describing further possibilities for extension and
+discussing the broader significance of this line of research.
 \end{abstract}
+\section{Introduction and Motivation}
 
-\section{Introduction}
-\section{Literature Review}
+Biologically-motivated algorithms have a long history in artificial intelligence and machine
+learning. Indeed, AI as a field was born out of attempts to simulate human intelligence using
+artificial systems\cite{AIHistory1}, and one of the earliest techniques, the perceptron, was
+explicitly based on a simplified model of a biological neuron.\cite{Rosenblatt}
+
+Although symbolic approaches enjoyed much more prominence following the publication of papers
+recognizing the limitations of early neural networks in the early 1960s\cite{DreyfusMind}, their own
+difficulties in dealing with problems of perception, learning, and pattern recognition led to a
+resurgence of interest in sub-symbolic systems from the 1980s onward.\cite{AIHistory1, AIHistory2,
+MLHistory1} It was during this period that the field of machine learning gained substantial
+prominence, focusing on pattern recognition, classification, and adaptive control, and placing a
+heavy emphasis on quantitative and often statistical methods as opposed to symbolic and logical
+ones.\cite{MLHistory1}
+
+Beginning largely in the early 1990s, collaboration in turn between machine learning researchers and
+neuroscientists produced models of neurological and cognitive systems demonstrating both strong
+concordance with empirical observations and excellent performance in the tasks addressed by those
+same systems.\cite{Poggio} Investigation in the area from that time onward has focused on the theory
+and simulation of increasingly substantial and complex aspects of human neuroscience, with a
+particular emphasis on neocortical functionality, the problem of vision, and the use of
+hierarchical, invariant representations for sensory stimuli.\cite{Poggio, HQSOM} The significance of
+such modeling efforts can hardly be overstated: they have led to new findings in neuroscience,
+improvements in brain-computer interface technology, and perhaps most profoundly, a new paradigm in
+artificial intelligence research.\cite{HQSOM, OnIntelligence}
+
+Currently, the most prominent of these models include the Neocognitron (Fukushima), HMAX
+(Riesenhuber, Poggio, Serre), the Neural Abstraction Pyramid (Behnke), Hierarchical-Temporal Memory
+(HTM) (George, Hawkins), Adaptive Resonance Theory (Carpenter, Grossberg), and VisNet (Stringer,
+Rolls).\cite{HQSOM} With the exception of HTM, each of these approaches either relies on substantial
+hard-coded \em a priori \em knowledge specific to vision, neglects the role of temporal associations
+in learning, or requires separate training and execution phases in use.\cite{HQSOM, HTMAlgo} HTM in
+turn involves complex and inelegant models of ``neurons", though they bear little resemblence to
+those modeled by computational biologists, and at its core is nothing more than a recurrent
+spatio-temporal clustering algorithm incorporating interlayer feedback to provide auto-associative
+prediction capabilities.\cite{HTMAlgo}
+
+Our goals in undertaking this project were to identify and generalize the essential aspects of
+existing hierarchical cortical models, and to extend and improve upon techniques from the
+literature. Therefore, we chose the simplest and most general such model we could find that was not
+subject to the above-enumerated limitations. This was the Hierarchical Quilted Self-Organizing Map
+(HQSOM) model developed by Miller and Lommel, which we have succeeded in analyzing, reproducing,
+testing, improving, and extending. 
+
+Specifically, we have implemented the HQSOM model in numerical Python, conducted the same visual
+shape recognition experiments as the paper's authors over a wide range of parameter values, and
+succeeded in reproducing their results in spite of ambiguity surrounding a particular key formula in
+the paper. Further, we have characterized the significance and implications of the HQSOM's
+parameters, improved the noise performance of the algorithm by including a mean-squared-error-based
+activation function, enhanced its separability characteristics by using a peripherally inhibitory
+"Mexican hat" update function instead of the standard gaussian, and improved the rate of its
+convergence without compromising representation quality through the incorporation of an adaptive
+learning rate used for inputs that differ greatly from all current prototypical representations.
+Finally, we have extended our implementation to represent and classify audio, and successfully built
+a system to learn and classify music based on genre which performs very well out-of-sample. We
+believe that even greater potential exists for the improvement and generalization of this approach,
+and we highlight some of our views on the matter in our conclusion below.
+
+\section{Paper and Summary}
+
+We chose to replicate the paper ``Biomimetic sensory abstraction using hierarchical quilted
+self-organizing maps," by Jeffrey W. Miller and Peter H. Lommel of the Draper Laboratory. The paper
+develops a novel classification algorithm called a hierarchical quilted self-organizing map (HQSOM),
+then applies it to two simple visual processing tasks. The motivation for this approach lies in the
+desire to model the operation of the human visual cortex in a way that improves upon the realism of
+earlier techniques by: relying more on learning and less on hard-coded \em a priori \em knowledge,
+using temporal associations and not just spatial ones to construct representations, and learning
+on-line instead of requiring a separate training period.
+
+The paper discusses several benefits of modeling the brain, noting that more accurate models have
+allowed for the creation of improved AI techniques, neurophysiological discoveries, and even better
+brain-computer interfaces. The authors choose to focus on vision in particular because it has such
+rich applications in software and is handled so easily by animals.
+
+They then discuss various aspects of brain structure and function, noting that the isocortex,
+comprising about 85\% of the brain in humans, is responsible most sensory processing, motor control,
+language, logic, mathematics, and spatial visualization. In spite of this, it appears to have a
+uniform, hierarchical structure throughout its various functional regions, and a substantial portion
+of the contemporary cognitive neuroscience community posits that the elements of this structure
+perform essentially the same information processing operations throughout the cortex.
+
+Examining the ventral stream of the visual cortex in particular, the authors note that its regions
+are wired in a hierarchy. At the base, V1 neurons respond to small lines of various orientations in
+their respective and narrow portions of the visual field, while neurons in the higher V2 region
+respond to somewhat less localized simple shapes, those of the even higher V4 region respond to more
+complex shapes across larger areas, and those in the IT region respond invariantly to complex
+objects throughout the entire field of view. The authors then mention a few similar cortical models,
+noting the above limitations in realism. Such alternative models are described in more detail in our
+literature review below.
+
+Miller and Lommel define the goals for their own model in terms of biological functional
+equivalence, generalizability across multiple sensory domains, and simplicity. They specifically
+note that computational efficiency was only a secondary goal. In pursuing functional equivalence,
+the authors take the explicit position that there exists some basic "building block" or unit of the
+cortex beyond which no further details must be modeled, so long as the abstract functionality of the
+unit is properly preserved.
+
+They describe this functionality in terms of the unsupervised learning of abstract patterns in the
+input data, and of the recurrent learning of patterns in the sequences of inputs patterns at lower
+levels of the hierarchy. They propose that this reduction of sensory input to abstract concepts may
+be conceived in terms of the related processes of spatial and temporal clustering, or "pooling".
+Spatial pooling learns patterns of input data that are spatially co-incident at a given level of the
+hierarchy, while temporal pooling learns patterns that tend to occur near one another in time.
+
+The authors note that numerous algorithms exist for spatial clustering, including K-means, SOMs,
+expectation maximization, winner-take-all neural networks. This is discussed further below in terms
+of our current and future extensions to the HQSOM model. Likewise, temporal clustering and sequence
+processing can be performed with anything from basic statistical techniques like ARMA, ARIMA, NARMA,
+GARCH, N-GARCH, etc. to recurrent neural networks, temporal Kohonen maps (TKMs), or the simpler and
+faster-converging recurrent self-organizing maps (RSOMs).
+
+In keeping with this approach, the HQSOM algorithm creates invariant, low-dimensional
+representations of high-dimensional data by passing them through successive stages of spatial and
+temporal pooling. Spatial pooling is accomplished by means of self-organizing maps (SOMs), while
+temporal pooling is handled by a type of modified SOM called a recurrent self-organizing map (RSOM).
+The authors elected to use the SOM model because it was familiar to them, and because it is
+relatively simple and well-researched. Likewise, they chose RSOMs for temporal pooling due to their
+demonstrated performance in the area and their elegant similarity to the ordinary SOM.
+
+A SOM, or Kohonen network, is a type of unsupervised nonlinear dimensionality reduction algorithm,
+often used for data visualization. It can also be viewed as a form of vector quantization. SOMs
+operate by building a table of "weight vectors" in the input space, then modifying the weight
+vectors closest to each successive input vector to make them closer to that input vector, such that
+the set of weight vectors overall converges to yield a summary representation of the clusters in the
+input data in a topology-preserving fashion. An RSOM is a SOM that takes an exponential moving
+average over the differences between input vectors and weight vectors when computing these
+distances, which allows measures of similarity to extend across a succession of inputs and hence
+into the temporal domain. Both SOMs and RSOMs are described in more mathematical detail in the
+section entitled \em System Design and Variables \em below.
+
+After describing the motivation and technical details of HQSOMs, Miller and Lommel's paper describes
+the recursive combination of HQSOM base units, which are comprised of a SOM whose regularized
+activation vector over its weight vectors is provided as input to an RSOM (see below for specific
+mathematical details). The SOM performs spatial clustering over its input, yielding a set of
+representative spatial feature vectors in the input space, and the RSOM proceeds to perform temporal
+clustering over sequences of these spatial patterns, such that the RSOM's weight vectors each
+correspond to some particular spatiotemporal cluster in the input data. Thus, the HQSOM base unit as
+a whole produces a dimensionally-reduced representations of the spatiotemporal contents of its
+input. It produces spatiotemporal abstractions. Composing HQSOMs in a hierarchical arrangement, such
+that the activation vector over the weight vectors of the RSOM in a given HQSOM base unit are
+provided as the inputs to the SOM of another HQSOM base unit, allows for the representation of
+progressively more invariant spatiotemporal patterns in the input data.
+
+The authors then describe two experiments involving the learning and classification of simple visual
+patterns, which we describe in detail and reproduce below.
+
 \section{Hypothesis, Plan, and Risks}
+As there has already been a great deal of work exploring HQSOMs and other types of hierarchical
+networks, we plan to first re-implement a number of these results and to extend the networks
+into the domain of audio.  Specifically we wish to replicate the experiments of Miller and Lommel
+that showed that HQSOMs could form shift and scale invariant representations of various shapes in
+small fields of vision (~49 pixels at the most).  Once we are able to replicate these results to a
+reasonable granularity, we will extend the HQSOM framework into the audio domain and attempt to
+classify music by genre.  There are a number of major risks to this project, most significantly
+that it is difficult to debug these types of networks due to the internal structure being fairly
+mathematical in nature.  For example, if a network is failing to produce the desired result,
+looking at the RSOM unit map is not particularly helpful.  Furthermore, the potential fragility of
+these types of systems is well known in the academic community, so it is very possible that we will
+not be able to get any viable results whatsoever due to bad parameters and long test runs.
+
 \section{System Design and Variables}
 HQSOM based networks consist of three basic building blocks: the Self Organizing Map (SOM), the
 Recurrent Self Organizing Map (RSOM) and the SOM-RSOM pair.  By composing SOM-RSOM pairs
@@ -32,11 +205,10 @@ SOM-RSOM pair is still an HQSOM. The general use case for HQSOMs is to cluster d
 supervised learner will actually make the classification because clusters in of themselves do not
 provide a classification. The following discussion of SOMs, RSOMs and HQSOMs is based on the work of
 Miller and Lommel, and as that is the paper we attempted to replicate the vast majority of this
-expositional information can be found in that paper
-\cite{HQSOM}
+method explanation can be found in that paper \cite{HQSOM}.
 \subsection{SOM}
-The basic SOM computional block can either be trained on data or asked to classify data. The SOM is
-made up of a $m$x$n$ matrix that maps inputs of dimension $m$ to outputs of dimension $n$.  For
+The basic SOM computational block can either be trained on data or asked to classify data. The SOM
+is made up of a $m$x$n$ matrix that maps inputs of dimension $m$ to outputs of dimension $n$.  For
 example a SOM designed to take in 3d vectors and output a 5d vector looks like:
 
 \begin{center}
@@ -63,7 +235,7 @@ input data towards the input data:
 \end{equation}
 where gamma is the rate of learning, $h_{ib}$ is the neighborhood function, and $\bold{w_i}$ is the
 map unit being modified.  The neighborhood function is defined as a function that is close to zero
-for units far away from the BMU.  Traditionally a gaussian is used:
+for units far away from the BMU.  Traditionally a Gaussian is used:
 \begin{equation} \label{eq:GAUSSIAN}
  h_{ib}(t) = exp(\frac{-||I_i-I_b||^2}{\mu(t)\sigma^2})
 \end{equation}
@@ -90,12 +262,15 @@ $
 \caption{$\sigma$ = 100}
 \end{center}
 \end{figure}
+Clearly, the update with the larger sigma affected more of the map space.  Also it is important to
+note that units were pulled towards the input, but with a less dramatic effect as the map index
+increased (separating itself further from the BMU).
 
 During activation, the SOM can return two types of activation vectors:
 \begin{enumerate}
 \item Discrete: A vector of the correct dimension with the BMU index set to 1 and all others set
 to 0.
-\item Continous: A vector $A(t)$ defined as the normalized form of a vector constructed as follows:
+\item Continuous: A vector $A(t)$ defined as the normalized form of a vector constructed as follows:
 \begin{equation}
  A_i = \frac{1}{||\bold{x(t)} - \bold{w_i}||^2}
 \end{equation}
@@ -103,7 +278,7 @@ to 0.
 
 
 \subsection{RSOM}
-The Recurrent SOM is an extension of the basic SOM that adds a exponential moving average of
+The Recurrent SOM is an extension of the basic SOM that adds an exponential moving average of
 differences between observed inputs and units in the map with time-decay parameter $\alpha$ . At
 each update the differences are updated and instead of looking for the BMU in map space, the BMU
 index is chosen by finding the minimum magnitude recursive difference. Furthermore, instead of
@@ -129,11 +304,11 @@ intended to get the best effect of both.  First the input data is fed into the S
 representation, and then this representation is fed into the RSOM to do temporal clustering. 
 \section{Implementation Process and Results}
 Two implementations of SOMs and RSOMs were written, one being as close as possible
-to the reference implementation for reproduceability, and the other having a number of slight
+to the reference implementation for reproducibility, and the other having a number of slight
 changes to improve convergance.  As is to be expected, the reference paper leaves out a
 number of implementation details so this is our best approximation.
 \subsection{Reference Implementation of SOM and RSOM Units}
-Self-Organizing Maps were implemented via a python class with three main methods: a constructor,
+Self-Organizing Maps were implemented via a Python class with three main methods: a constructor,
 an update method that takes a numpy array representing the input vector as well as the learning
 parameters (gamma, sigma, etc...) and modifies the internal state of the SOM accordingly, and a
 method to request the activation vector for a given input vector. Internally the SOM map was stored
@@ -143,11 +318,11 @@ using a linear search for the minimum Euclidean distance and then all map units 
 well as the BMU were shifted towards the input according to a Gaussian neighborhood function.  The
 standard SOM update rule was used as per equation ($\ref{eq:UPDATE}$).
  
-A linear search was prefered due to the high dimensionality of the space <CITATION NEEDED>, and a
-Gaussian neighborhood function was chosen for reproduceability.  The activation
-method returned either a discrete or a continuous representation of the map's activation to a given
-input. The discrete representation is defined as above, and the normal representation is given in
-equation ($\ref{eq:EUCMETH}$) where $a_i$ represents the $i$th position in the activation vector,
+A linear search was prefered due to the high dimensionality of the space, and a Gaussian
+neighborhood function was chosen for reproduceability.  The activation method returned either a
+discrete or a continuous representation of the map's activation to a given input. The discrete
+representation is defined as above, and the normal representation is given in equation
+($\ref{eq:EUCMETH}$) where $a_i$ represents the $i$th position in the activation vector,
 $\bold{w_b}$ is the BMU, $\bold{x}$ is the input vector, and $\bold{w_i}$ represents the $i$th map
 unit.
 \begin{equation} \label{eq:EUCMETH}
@@ -172,7 +347,8 @@ Hierarchies were built at first by hard wiring these HQSOM base units together. 
 to facilitate testing of the audio extension, a framework was designed that allowed for any
 arbitrary tree HQSOM taking a linear input.  The first level of the tree reads data from the input,
 and passes its activation vector to the next layer, which passes its activation vector to the next
-layer, etc ...
+layer, etc ...  The output of the top level node is the representation of the input that is
+(hopefully) invariant under certain conditions.
 
 \subsection{Replication of First Experiment}
 The first experiment presented in the paper was a simple example of 3x3 images with 3
@@ -222,10 +398,10 @@ images were replaced with a call to this function. After roughly 2500 training s
 the network, the HQSOM was asked to classify (return the BMU of the top level RSOM) each piece of
 data again and as expected all horizontal lines were classified the same, all vertical Lines were
 classified the same, and all blank images were classified the same regardless of position.  The
-netork had successfully formed an invariant representation of vertical and horizontal lines in a 3x3
-field of view.
+network had successfully formed an invariant representation of vertical and horizontal lines in a
+3x3 field of view.
 \\
-To test the noise tolerance of the network, gaussian noise with standard deviation .1, .2, .25 and
+To test the noise tolerance of the network, Gaussian noise with standard deviation .1, .2, .25 and
 .3 was applied to the test data, which was then trained on as before and the HQSOM was again asked
 to classify samples of noisy vertical and horizontal lines (with different noise from the training
 data).  The results of 100 trials with each noise level are summarized in Table
@@ -249,8 +425,9 @@ lines.  For example: $ \begin{pmatrix} 1 & 0 & 0 & 0 & 2 & 2 & 2 \end{pmatrix}$ 
 clustering if we apply one blank image, three vertical lines, and three horizontal lines but $
 \begin{pmatrix}  2 & 0 & 0 & 0 & 0 & 0 & 0 \end{pmatrix}$ is not. It is worth noting that when fewer
 than 2000 training steps were taken the map would often converge to a ``Something vs Nothing'' map
-in that the HQSOM would be very goood at clustering lines together and blank images together, but
-would not differentiate between the two types of lines.  This makes sense because the alphas 
+in that the HQSOM would be very good at clustering lines together and blank images together, but
+would not differentiate between the two types of lines.  This makes sense because the alpha is
+small enough that it could take time for the final representation to form.
 
 \subsection{Replication of Second Experiment}
 The second experiment presented in the paper aimed to create shift and scale invariant
@@ -258,17 +435,17 @@ representations of squares, diamonds, and X shapes in a 7x7 grid.  To replicate 
 two tiered network was created such that there were 9 low level HQSOMs that each inspected a 3x3
 swatch of the 7x7 grid with 1 pixel overlaps on each side which fed a top level HQSOM with a 9
 dimensional vector input (composed of the BMUs of each of the bottom level HQSOMs), which in turn
-outputed a BMU index representing the cluster an input belongs to. The goal was to find a shift
+outputted a BMU index representing the cluster an input belongs to. The goal was to find a shift
 invariant representation of these shapes by exposing the network to each family of shapes that
 are both scaled and then shifted around in a spiral fashion, followed by blanks for 100 steps,
 and then the next shape, more blanks, and so on.  The input sequence is shown in Figure
 $\ref{fig:7TestData}$.
-\begin{figure}
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[scale=.3]{./exp2_dataset.png}
  % exp2_dataset.png: 813x175 pixel, 72dpi, 28.68x6.17 cm, bb=0 0 813 175
 \end{center}
-\caption{Experiment 1 Training Sequence}
+\caption{Input Audio Spectrograms}
 \label{fig:7TestData}
 \end{figure} 
 
@@ -329,15 +506,16 @@ Full Distribution over Final RSOM Map Space:
 \end{verbatim} 
 \end{center}
 
-While there is certainly convergance, it is not 95\%.  Due to the fact that runs of this particular
+While there is certainly convergence, it is not 95\%.  Due to the fact that runs of this particular
 simulation took well over 9 hours, we were only able to test about 10 different
 parameter combinations, none of which yielded a better result then the one supplied above.  It
 appeared that the HQSOM was not using the full breadth of the RSOM map space in any of the HQSOM
 units, which was likely because the activation vectors passed up were incorrect.  This was likely
-the cause because the implementation of continuous activation vectors was deduced but not taken
+the cause because the implementation of continuous activation vectors was dededuced but not taken
 directly from the paper due to unclear explanation in the paper of how they passed activation
-vectors.  It was also noticed that the networks fequently converged to certain states very quickly
-and then never moved from that state.  The lack of a good activation vector and fast convergance
+vectors.  It was also noticed that the networks frequently converged to certain states very quickly
+and then never moved from that state.  The lack of a good activation vector and unintentional fast
+convergence
 led us to the following innovations:
 \begin{enumerate}
 \item A regularized activation vector based on the Mean Squared Error of the BMU vector.
@@ -353,7 +531,7 @@ performance. In all cases our implementation proved to be superior, especially w
 testing our Audio extension.
 \\
 \\
-We began by implementing the new activation vector.  Since the adaptive $sigma$ function was based
+We began by implementing the new activation vector.  Since the adaptive $\sigma$ function was based
 on minimizing the mean-squared error (MSE) of the BMU and input vector, we believed that it would
 also be a good metric to measure activation by.  This lead to the definition in equation
 ($\ref{eq:MSEMETH}$) where the vector parameters are the same as in equation ($\ref{eq:EUCMETH}$)
@@ -362,7 +540,8 @@ $\bold{x}$ and $\bold{y}$.
 \begin{equation} \label{eq:MSEMETH}
  a_i = \frac{MSE(\bold{w_b}, \bold{x})^3}{MSE(\bold{w_i},\bold{x})^3}
 \end{equation}
-The cube was so that the distribution in the vector would be more concentrated on the BMU's index.
+The errors were cubed so that the distribution in the vector would be more concentrated on the
+BMU's index.
 \\
 \\
 Next we implemented the adaptive $\gamma$.  During testing, the MSE between the input and BMU would
@@ -381,9 +560,9 @@ Lastly we replaced equation $\ref{eq:GAUSSIAN}$ with equation $\ref{eq:MEXICANHA
  h_{ib}(t) = (1-\frac{||I_i-I_b||^2}{\sigma^2})*exp(\frac{-||I_i-I_b||^2}{\mu(t)\sigma^2})
 \end{equation}
 The advantage of this function is that it pushes away map units that are near to the input,
-but far enough away to be considered not matching.  This helps deal with the pre-matrure convergance
+but far enough away to be considered not matching.  This helps deal with the pre-mature convergence
 noticed during testing. The negative aspect of this function is that the $\sigma$ parameter has to
-be chosed very carefully so as to prevent uniform distributions from forming.
+be chosen very carefully so as to prevent uniform distributions from forming.
 \\
 \\
 With our improvements in place, we re-ran the noise tolerance test from Experiment 1 and the large
@@ -458,18 +637,18 @@ clusters.  Once again, our implementation seemed superior.
 
 \subsection{Extension into Audio}
 The final stage of our project was extending our framework into audio classification.  The goal was
-to be able to give a HQSOM spectrograms, and have the network cluster like genres together. 
+to be able to give a HQSOM spectrograms, and have the network cluster similar genres together. 
 The first step of implementation was to build a generic framework that would allow for any arbitrary
 tree type network to be constructed without hard-wiring the HQSOMs together.  Then, a test
 framework was created that allowed us to take 15 second snippets of songs, compute FFTs over windows
 that lasted $\frac{1}{10}$ of a second for each song, and puncture the FFTs such that we reduced the
-input space to a 128 dimension vector.  At the end of data processing we had the six FFTs shown in
-Figure $\ref{fig:FFTS}$. The data were derived from the following songs:
+input space to a 128 dimension vector.  At the end of data processing we had the six Spectrograms
+shown in Figure $\ref{fig:FFTS}$. The data were derived from the following songs:
 \begin{enumerate}
  \item Techno (Training) - Rudenko - Everybody
  \item Techno (Testing) - Kid Cudi - Day and Night
- \item Rock (Training) - Red Hot Chili Peppers, Californication
- \item Rock (Testing) - Red Hot Chili Peppers, By the Way
+ \item Rock (Training) - Red Hot Chili Peppers - Californication
+ \item Rock (Testing) - Red Hot Chili Peppers - By the Way
  \item Classical(Training) - Unknown Orchestra Conducted By George Winston - Carol Of The Bells
  \item Classical(Testing) - Beethoven - Symphony No. 9
 \end{enumerate}
@@ -484,6 +663,7 @@ which then output their BMUs to a combined 2d vector which is used as the input 
 node which outputs the classification BMU (See the attached code for exact parameter details).  When
 we used this network in conjunction with our improvements we were able to get the following results:
 \begin{center}
+\small
 \begin{verbatim}
 ################################################################################
 Results for Techno
@@ -520,12 +700,12 @@ MODE: 1
 
 This is the result after cycling through each training song in entirety, followed by three random 1
 second window exposures for each song, making sure to clear the HQSOM's difference matrix when
-switching songs.  The above is not a perfect clustering of data, but it does show that the network
-formed a weak invariant representation of different genres, after only a single training cycle.  It
-is important to note that it took quite a bit of tweaking of parameters to get the above results,
-but it is a perfectly fine proof of concept.
+switching songs.  The above result is not a perfect clustering of data, but it does show that the
+network formed a weak invariant representation of different genres, after only a single training
+cycle.  It is important to note that it took quite a bit of tweaking of parameters to get the above
+results, but it is a perfectly good proof of concept.
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{center}
   \includegraphics[scale=.2]{./all_ffts.png}
  % exp2_dataset.png: 813x175 pixel, 72dpi, 28.68x6.17 cm, bb=0 0 813 175
@@ -534,17 +714,94 @@ but it is a perfectly fine proof of concept.
 \label{fig:FFTS}
 \end{figure} 
 
-
-
-
-\subsection{Problems}
 \section{Discussion and Conclusions}
+
+HQSOMs represent a promising path towards invariant spatio-temporal reasoning through massively
+parallel vector math. This paper has successfully reproduced many of the results of Miller and
+Lommel, improved upon the convergence and noise tolerance properties of their algorithm, and
+extended the HQSOM model into the audio domain where these types of networks show great promise. We
+have demonstrated that HQSOMs can simultaneously perform spatial and temporal clustering at multiple
+layers of abstraction, permitting invariant feature representation and classification over both
+space and time. Further, we have shown that they can do so in the presence of considerable noise,
+and that they perform quite robustly out of sample -- in particular, they can successfully classify
+never-before-seen audio data according to the highly abstract criterion of genre. All of this is
+done in a fully unsupervised fashion.
+
+In performing our experiments, however, we have also identified a number of shortcomings in both the
+original HQSOM model and our improved version. We have found that the networks are highly sensitive
+to parameter values and to some extent initial conditions, and that they often exhibit problems with
+premature convergence. We believe these issues present promising avenues for further research, with
+a particular focus on automatically tuning system parameters based on descriptive metrics for the
+input and the sets of SOM and RSOM map units. This would effectively reduce the number of parameters
+requiring specification in the model, and would make network performance much less reliant on
+empirical testing of configuration settings. As an example, the adaptive $\gamma$ as shown in this
+paper is a good start, but these networks must become less fragile if they are to be widely adopted.
+
+More broadly, our work has enabled us to characterize the essential properties of the general class
+of hierarchical, invariant, spatiotemporal representation and classification algorithms. Namely,
+they must perform recurrent spatial and temporal clustering over multiple levels of a hierarchy
+while preserving the underlying topology of their high-dimensional input data. It has not escaped
+our notice that SOMs are merely one of many topology-preserving techniques for nonlinear
+dimensionality reduction, and we strongly believe that the use of others such as locally linear
+embedding or Isomap in a sort of generalized spatiotemporal representation algorithm could yield
+promising results.
+
+The incorporation of feedback mechanisms sending information from higher regions to lower ones also
+appears as an immediate possibility for extension, and including such capabilities would provide a
+means for auto-associativity and prediction.\cite{HTMAlgo, OnIntelligence} Having already
+incorporated the property of invariance, there is considerable reason to believe that a generalized
+spatiotemporal representation algorithm with such feedback could add emergence, reification, and
+multistability to its repertoire, completing its implementation of the core principles of gestalt
+systems.\cite{HTMAlgo, OnIntelligence} Much more distant possibilities include the incorporation of
+reinforcement learning, models of motor control and attention, and the capacity for episodic memory
+formation, with the eventual goal of constructing simulated or robotic intelligent agents that
+exhibit goal-directed behaviors and learn from their interactions with the
+world.\cite{OnIntelligence} For now, however, we are pleased with our results and look forward to
+further investigation.
+
 \section{References}
 
-\begin{thebibliography}{}
-\bibitem{HQSOM} J. W. Miller and P. H. Lommel. \textsc{Biomimetic sensory abstraction using
-hierarchical quilted self-organizing maps}. The Charles Stark Draper Laboratory, Inc.
-555 Technology Square, Cambridge, MA 02139-3563, USA. 2006.
-\end{thebibliography}
 
+\begin{thebibliography}{}
+
+
+\bibitem{AIHistory1} M. Lungarella, F. Iida, J. C. Bongard, R. Pfeifer. \textsc{AI in the 21st
+Century -- With Historical Reflections}. 50 Years of AI, Festschrift, LNAI 4850, pp. 1–8, 2007.
+
+
+\bibitem{Rosenblatt} F. Rosenblatt. \textsc{The Perceptron: A Probabilistic Model for Information
+Storage and Organization in the Brain}. Cornell Aeronautical Laboratory, Psychological Review, v65,
+No. 6, pp. 386–408, 1958.
+
+
+\bibitem{DreyfusMind} H. L. Dreyfus, S. E. Dreyfus. \textsc{Making a Mind versus Modeling the Brain:
+Artificial Intelligence Back at a Branchpoint}. \em Daedalus \em, v117, No. 1, Artificial
+Intelligence pp. 15–43, Winter, 1988.
+\bibitem{AIHistory2} J. Schmidhuber. \textsc{AI in the 21st Century -- With Historical Reflections}.
+50 Years of AI, Festschrift, LNAI 4850, pp. 29–41, 2007.
+
+
+\bibitem{MLHistory1} J. G. Carbonell, R. S. Michalski, T. M. Mitchell. \textsc{Machine Learning: A
+Historical and Methodological Analysis}. The AI Magazine, pp. 69–79, Fall 1983.
+
+
+\bibitem{Poggio} T. Serre, M. Kouh, C. Cadieu, U. Knoblich, G. Kreiman, T. Poggio. \textsc{A Theory
+of Object Recognition: Computations and Circuits in the Feedforward Path of the Ventral Stream in
+Primate Visual Cortex}. AI Memo 2005-036. CBCL Memo 259. Massachusetts Institute of Technology,
+Center for Biological and Computational Learning. Dec. 2005.
+
+
+\bibitem{HQSOM} J. W. Miller and P. H. Lommel. \textsc{Biomimetic sensory abstraction using
+hierarchical quilted self-organizing maps}. The Charles Stark Draper Laboratory, Inc. 555 Technology
+Square, Cambridge, MA 02139-3563, USA. 2006.
+\bibitem{OnIntelligence} J. Hawkins and S. Blakeslee. \textsc{On Intelligence}. Tomes Books, Holt,
+New York, USA. 2002.
+
+
+\bibitem{HTMAlgo} J. Hawkings, S. Ahmad, D. Dubinsky. \textsc{Hierarchical Temporal Memory including
+HTM Cortical Learning Algorithms}. Numenta, Inc. 811 Hamilton St., Redwood City, CA 94063, USA.
+Sept. 2011.
+
+
+\end{thebibliography}
 \end{document}
