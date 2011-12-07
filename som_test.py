@@ -287,14 +287,14 @@ def test_hqsom_77():
     #num_cycles, data_sets, num_repeats = 1, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 1
 
     #Our settings
-    bottom_som_size, bottom_rsom_size, top_som_size, output_size = 40, 20, 150, 10
+    bottom_som_size, bottom_rsom_size, top_som_size, output_size = 40, 25, 150, 7
     hqsom = PaperFig3Hierarchy(bottom_som_size,
                                bottom_rsom_size,
                                top_som_size,output_size, 
                                use_pure_implementation=use_pure)
-    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = 0.2,0.02,0.2,0.1,25.0,150.0,15.0,250.0,0.15,0.05    
-    run_name = "18_OUR_SETTINGS_"
-    num_cycles, data_sets, num_repeats = 30, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 4
+    g1,g2,g3,g4,s1,s2,s3,s4,a1,a2 = 0.1,0.01,0.1,0.05,20.0,150.0,15.0,250.0,0.1,0.02    
+    run_name = "REFERENCE_19_OUR_SETTINGS_"
+    num_cycles, data_sets, num_repeats = 50, [("SQUARE",square_data), ("DIAMOND",diamond_data), ("X",x_data)], 4
     
     seq_num = 0
     
@@ -346,14 +346,20 @@ def test_hqsom_77():
 def test_audio():
     print "Loading songs into memory"
     song_rock = audio.Spectrogram("data/music/Californication.wav")
+    song_rock2 = audio.Spectrogram("data/music/ByWay.wav")
     song_techno = audio.Spectrogram("data/music/Everybody.wav")
-    #song_classical = audio.Spectrogram("data/music/Brahms_Double_Concerto_in_A_minor_smaller.wav")
+    song_techno2 = audio.Spectrogram("data/music/DayNNight.wav")
     song_classical = audio.Spectrogram("data/music/Bells.wav")
+    song_classical2 = audio.Spectrogram("data/music/Symp9.wav")
+
     print "Done loading songs into memory"
     songs = [
                 ("Techno", song_techno), 
+                ("TechnoTEST", song_techno2),
+                ("Classical", song_classical),
+                ("ClassicalTEST", song_classical2),
                 ("Rock", song_rock), 
-                ("Classical", song_classical)
+                ("RockTEST", song_rock2),
             ]
     song_types = [i for (i,j) in songs]
     num_seconds, test_length  = .1, 10
@@ -400,8 +406,14 @@ def test_audio():
     plt.title("Techno")
     plt.matshow(np.transpose(final_data["Classical"]))
     plt.title("Classical")
+    plt.matshow(np.transpose(final_data["ClassicalTEST"]))
+    plt.title("Classical_TEST_DATA")
+    plt.matshow(np.transpose(final_data["TechnoTEST"]))
+    plt.title("Techno_TEST_DATA")
+    plt.matshow(np.transpose(final_data["RockTEST"]))
+    plt.title("Rock_TEST_DATA")
         
-    output_size = 5
+    output_size = 4
     hqsom = Hierarchy1D(
         ## layer 1: 8 nodes over 16 inputs each
         #LayerConf1D(8, 16,   128, 0,
@@ -442,11 +454,14 @@ def test_audio():
     # 2) Pick 3 random sequences of test_length in size from each song, run through
     # 3) Clear at each in between
     seq_num = 0
-    num_cycles, num_repeats = 50, 1
+    num_cycles, num_repeats = 1, 1
     total_run_count = num_cycles*sum([(len(final_data[x])) for x in song_types])
 
     for i in range(num_cycles):
         for song_type in song_types:
+            if song_type == "ClassicalTEST" or song_type == "TechnoTEST" or song_type == "RockTEST":
+                print "Skipping test data: {}".format(song_type)
+                continue
             for spectrum in final_data[song_type]:
                 hqsom.update(spectrum)
                 #print hqsom.activation_vector(spectrum, True, True)
@@ -459,6 +474,9 @@ def test_audio():
     seq_num = 0
     for i in range(num_cycles*2):
         for song_type in song_types:
+            if song_type == "ClassicalTEST" or song_type == "TechnoTEST" or song_type == "RockTEST":
+                print "Skipping test data: {}".format(song_type)
+                continue
             num_spectrograms = len(final_data[song_type])
             r_index = np.random.randint(0,num_spectrograms-test_length)
             for index in range(r_index, r_index+test_length):
@@ -475,6 +493,8 @@ def test_audio():
     print "Using Network:"
     print hqsom.layer_configs
 
+    print "num_cycles, num_repeats, num_seconds, test_length = {}, {}, {}, {}".format(num_cycles, num_repeats, num_seconds, test_length)
+    
     for data_name in song_types:
         print "#"*80
         print "Results for {}".format(data_name)
@@ -488,7 +508,7 @@ def test_audio():
         print "Final Distribution Over Map Space"
         print results
         print "MODE: {}".format(np.argmax(results))
-    plt.show()
+    #plt.show()
 
     
 if __name__ == "__main__":
