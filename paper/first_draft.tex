@@ -85,14 +85,20 @@ shape recognition experiments as the paper's authors over a wide range of parame
 succeeded in reproducing their results in spite of ambiguity surrounding a particular key formula in
 the paper. Further, we have characterized the significance and implications of the HQSOM's
 parameters, improved the noise performance of the algorithm by including a mean-squared-error-based
-activation function, enhanced its separability characteristics by using a peripherally inhibitory
-"Mexican hat" update function instead of the standard gaussian, and improved the rate of its
-convergence without compromising representation quality through the incorporation of an adaptive
-learning rate used for inputs that differ greatly from all current prototypical representations.
-Finally, we have extended our implementation to represent and classify audio, and successfully built
-a system to learn and classify music based on genre which performs very well out-of-sample. We
-believe that even greater potential exists for the improvement and generalization of this approach,
-and we highlight some of our views on the matter in our conclusion below.
+activation function, and enhanced its separability characteristics by using a peripherally
+inhibitory "Mexican hat" neighborhood function instead of the standard gaussian.  We have also
+improved its convergence rate without
+compromising representation quality, through the incorporation of an adaptive learning rate that is
+applied to the best-matching input
+prototype when a given input differs greatly from all current prototypical
+representations.  We have also improved the efficiency of the training process by
+creating a "reset" function, which both eliminates the need for blank input sequences between
+successive training sequences, and ensures that no residual effects can carry over between these
+training sequences. Finally, we have extended our implementation to represent and classify
+audio, and successfully built a system to learn and classify music based on genre which performs
+very well out-of-sample. We believe that even greater potential exists for the improvement and
+generalization of this approach, and we highlight some of our views on the matter in our conclusion
+below.
 
 \section{Paper and Summary}
 
@@ -183,29 +189,53 @@ The authors then describe two experiments involving the learning and classificat
 patterns, which we describe in detail and reproduce below.
 
 \section{Hypothesis, Plan, and Risks}
-As there has already been a great deal of work exploring HQSOMs and other types of hierarchical
-networks, we plan to first re-implement a number of these results and to extend the networks
-into the domain of audio.  Specifically we wish to replicate the experiments of Miller and Lommel
-that showed that HQSOMs could form shift and scale invariant representations of various shapes in
-small fields of vision (~49 pixels at the most).  Once we are able to replicate these results to a
-reasonable granularity, we will extend the HQSOM framework into the audio domain and attempt to
-classify music by genre.  There are a number of major risks to this project, most significantly
-that it is difficult to debug these types of networks due to the internal structure being fairly
-mathematical in nature.  For example, if a network is failing to produce the desired result,
-looking at the RSOM unit map is not particularly helpful.  Furthermore, the potential fragility of
+We wish to begin by re-implementing the HQSOM algorithm described in the paper, using numerical
+Python.  The primary risk in doing so is that the algorithm is rather complex, and certain aspects
+are not thoroughly described.  We also expect that it will take a long time to code, and that the
+high dimensionality and fairly opaque nature of the HQSOM's representations may make it difficult to
+debug our implementation.  For example, if a network is failing to produce the desired result,
+looking at the RSOM unit map is not particularly helpful.
+
+We will then attempt to reproduce the experimental results presented by Miller and Lommel,
+which showed that HQSOMs could form shift- and scale-invariant representations of various shapes
+within
+3x3- and 7x7-pixel fields of vision.  We expect that the testing framework and test data may take a
+considerable amount of time to create.  We also anticipate that the experimental results may be
+difficult to reproduce due to parameter sensitivity, and that computational efficiency may pose
+hurdles given the number of training cycles used in the paper.  As above, we again note that it can
+be difficult to debug these types of networks due to the internal structure being fairly
+mathematical in nature.  Finally, the potential fragility of
 these types of systems is well known in the academic community, so it is very possible that we will
 not be able to get any viable results whatsoever due to bad parameters and long test runs.
 
+Once we are able to replicate these results to a
+reasonable degree of precision, we will extend the HQSOM framework into the audio domain and attempt
+to
+classify music by genre.  The main risks emerge from the potential complexity of these extensions,
+the nuances involved in producing high-quality spectrograms, and the anticipated large size and
+computational burden of networks capable of classifying something as abstract as genre.
+
 \section{System Design and Variables}
-HQSOM based networks consist of three basic building blocks: the Self Organizing Map (SOM), the
-Recurrent Self Organizing Map (RSOM) and the SOM-RSOM pair.  By composing SOM-RSOM pairs
-into larger networks, Hierarchical Quilted Self-Organizing Maps are formed (HQSOM), which can
-identify both spatial and temporal clustering in data.  It is important to note that a single
-SOM-RSOM pair is still an HQSOM. The general use case for HQSOMs is to cluster data, and then a
-supervised learner will actually make the classification because clusters in of themselves do not
-provide a classification. The following discussion of SOMs, RSOMs and HQSOMs is based on the work of
-Miller and Lommel, and as that is the paper we attempted to replicate the vast majority of this
-method explanation can be found in that paper \cite{HQSOM}.
+HQSOM networks are comprised of hierarchically stacked building blocks known as HQSOM base units.
+An HQSOM base unit in turn consists of a stacked SOM-RSOM pair, such that input to the base
+unit as a whole is provided as the input to the SOM, then the regularized activation vector over the
+map space of the SOM is provided
+as the input to the RSOM, and finally the activation vector over the map space of the RSOM is
+provided as the input to
+any HQSOM base units stacked above this one.  If this is the top unit in the network, then this
+final RSOM activation vector yields an invariant summary of the input data as a whole and may be
+used for classification.
+Composing these SOM-RSOM pairs into multi-layered networks yields Hierarchical Quilted
+Self-Organizing Maps (HQSOMs), which can
+identify both spatial and temporal clustering in data over multiple levels of abstraction.  The
+general use case for HQSOMs is to identify spatiotemporal clusters in input data, such that a
+supervised learning technique can be applied to actually make the classification, since the clusters
+themselves rely on some associated semantic meaning in order to be regarded as labels.  However, for
+the sake of this paper, we will take such semantic meaning for granted and thus consider
+clustering equivalent to classification. The following
+discussion of SOMs, RSOMs and HQSOMs is based on the corresponding sections of the Miller and Lommel
+paper, and hence the vast majority of this method explanation can be found in that
+paper as well \cite{HQSOM}.
 \subsection{SOM}
 The basic SOM computational block can either be trained on data or asked to classify data. The SOM
 is made up of a $m$x$n$ matrix that maps inputs of dimension $m$ to outputs of dimension $n$.  For
@@ -293,9 +323,10 @@ The update rule becomes:
  \bold{w_{i}}(t+1) = \bold{w_i}(t) + \gamma h_{ib_r}(t)\bold{y(t)}
 \end{equation}
 where the neighborhood function is computed using the recursive BMU as the BMU index instead of the
-map space BMU.  Tuning of $\alpha$ depends on how responsive one wants the RSOM to be: lower values
-of $\alpha$ mean a moving average of inputs dominate (long term memory) and higher values of
-$\alpha$ (close to 1) mean that recent inputs dominate (short term memory).
+map space BMU.  The proper tuning of $\alpha$ depends on how responsive one wishes for the RSOM to
+be: lower values of $\alpha$ cause the moving average of inputs to dominate (long term memory),
+whereas higher values of $\alpha$ (close to 1) mean that recent inputs dominate (short term memory)
+
 \subsection{SOM-RSOM Pair}
 The final computational structure is the SOM-RSOM pair.  Recognizing that SOMs are effective at
 identifying spatial clustering, and RSOMs are effective at identifying temporal clustering, but
@@ -310,8 +341,9 @@ number of implementation details so this is our best approximation.
 \subsection{Reference Implementation of SOM and RSOM Units}
 Self-Organizing Maps were implemented via a Python class with three main methods: a constructor,
 an update method that takes a numpy array representing the input vector as well as the learning
-parameters (gamma, sigma, etc...) and modifies the internal state of the SOM accordingly, and a
-method to request the activation vector for a given input vector. Internally the SOM map was stored
+parameters (gamma, sigma, etc...) to use for that particular update and modifies the internal state
+of the SOM accordingly, and a method to request the activation vector for a given input vector.
+Internally the SOM map was stored
 as a $m$x$n$ numpy array where $n$ is the input vector size and $m$ is the size of the map space. 
 During an update call, the Best Matching Map Unit (BMU) for any given input vector was determined
 using a linear search for the minimum Euclidean distance and then all map units near to the BMU as
@@ -339,15 +371,17 @@ a SOM object and a RSOM object with an update and activation method that takes i
 $\bold{x}$, feeds it into the SOM to get a transformed activation vector $\bold{y}$ and finally
 takes that $\bold{y}$ and feeds it into the RSOM to get the final output which is the BMU of the
 RSOM.  The only difference between the SOM-RSOM update and activation methods is that the update
-method is calling update internally while the activation method is passing along activation
+method calls update internally (thus changing the state of the network), whereas the activation
+method merely passes along activation
 vectors. In the code this SOM-RSOM pair was refered to as a HQSOM because a single SOM-RSOM pair
 does indeed form the simplest HQSOM.
 
 Hierarchies were built at first by hard wiring these HQSOM base units together.  However, in order
 to facilitate testing of the audio extension, a framework was designed that allowed for any
-arbitrary tree HQSOM taking a linear input.  The first level of the tree reads data from the input,
-and passes its activation vector to the next layer, which passes its activation vector to the next
-layer, etc ...  The output of the top level node is the representation of the input that is
+arbitrary tree HQSOM accepting input with a 1-dimensional topology (e.g. a line of pixels or
+spectral power densities, as opposed to a 2d image).  The first level of the tree reads data from
+the input, and passes its activation vector to the next layer, which passes its activation vector to
+the next layer, etc ...  The output of the top level node is the representation of the input that is
 (hopefully) invariant under certain conditions.
 
 \subsection{Replication of First Experiment}
@@ -391,7 +425,7 @@ training sequence (without noise) is shown in Figure $\ref{fig:3TestData}$.
 Applying the sequence shown in Figure $\ref{fig:3TestData}$ hundreds of times with parameters
 $\gamma_{som} = \gamma_{rsom} = .1, \sigma_{som}=16, \sigma_{rsom}=90,$ and $ \alpha = .1$
 trained the HQSOM and clustered the weight vectors in the map units of the SOM and RSOM. Since the
-blank images are soley meant to reset the RSOM EMA difference matrix, a method was added to RSOMs
+blank images are solely meant to reset the RSOM EMA difference matrix, a method was added to RSOMs
 and HQSOMs that allows the difference matrix to be cleared (with a random index selected to have a
 value of .01 so that the BMU varies randomly after each reset) and the training steps with blank
 images were replaced with a call to this function. After roughly 2500 training samples were shown to
@@ -404,8 +438,7 @@ network had successfully formed an invariant representation of vertical and hori
 To test the noise tolerance of the network, Gaussian noise with standard deviation .1, .2, .25 and
 .3 was applied to the test data, which was then trained on as before and the HQSOM was again asked
 to classify samples of noisy vertical and horizontal lines (with different noise from the training
-data).  The results of 100 trials with each noise level are summarized in Table
-$\ref{table:3TestResults}$.
+data).  The results of 100 trials with each noise level are summarized in the following table:
 \begin{center}
   \begin{tabular}{ | c | c | c | }
     \hline
@@ -433,8 +466,9 @@ small enough that it could take time for the final representation to form.
 The second experiment presented in the paper aimed to create shift and scale invariant
 representations of squares, diamonds, and X shapes in a 7x7 grid.  To replicate this experiment, a
 two tiered network was created such that there were 9 low level HQSOMs that each inspected a 3x3
-swatch of the 7x7 grid with 1 pixel overlaps on each side which fed a top level HQSOM with a 9
-dimensional vector input (composed of the BMUs of each of the bottom level HQSOMs), which in turn
+swatch of the 7x7 grid with 1 pixel overlaps on each side.  These base units fed into a top level
+HQSOM having a 9 dimensional vector input (composed of the BMUs of each of the bottom level HQSOMs),
+which in turn
 outputted a BMU index representing the cluster an input belongs to. The goal was to find a shift
 invariant representation of these shapes by exposing the network to each family of shapes that
 are both scaled and then shifted around in a spiral fashion, followed by blanks for 100 steps,
@@ -445,12 +479,12 @@ $\ref{fig:7TestData}$.
  \includegraphics[scale=.3]{./exp2_dataset.png}
  % exp2_dataset.png: 813x175 pixel, 72dpi, 28.68x6.17 cm, bb=0 0 813 175
 \end{center}
-\caption{Input Audio Spectrograms}
+\caption{Experiment 2 Input Data}
 \label{fig:7TestData}
 \end{figure} 
 
 The paper claims upward of 95\% clustering, but we were unable to even achieve a four
-classifier using the specified parameters in the paper as per Figure $\ref{fig:PAPERSPECS}$. 
+classifier using the specified parameters from the paper as per Figure $\ref{fig:PAPERSPECS}$. 
 \begin{figure}[ht] 
  \begin{center}
   \begin{tabular}{ | l | c | c | c | c | }
@@ -510,10 +544,11 @@ While there is certainly convergence, it is not 95\%.  Due to the fact that runs
 simulation took well over 9 hours, we were only able to test about 10 different
 parameter combinations, none of which yielded a better result then the one supplied above.  It
 appeared that the HQSOM was not using the full breadth of the RSOM map space in any of the HQSOM
-units, which was likely because the activation vectors passed up were incorrect.  This was likely
-the cause because the implementation of continuous activation vectors was dededuced but not taken
-directly from the paper due to unclear explanation in the paper of how they passed activation
-vectors.  It was also noticed that the networks frequently converged to certain states very quickly
+units, which may have resulted from an incorrect formulation of the activation vectors that were
+being passed up.  We suspect this as the cause because the formulas presented in the paper for the
+continuous version of the activation vectors were not well-formed.  Thus, we had to deduce the
+proper formulas based on somewhat unclear explanations of these vectors and their significance.  It
+was also noticed that the networks frequently converged to certain states very quickly
 and then never moved from that state.  The lack of a good activation vector and unintentional fast
 convergence
 led us to the following innovations:
@@ -634,7 +669,6 @@ SUCCESS
 When run with the same network, the reference implementation only produced two main statistical
 clusters.  Once again, our implementation seemed superior.  
 
-
 \subsection{Extension into Audio}
 The final stage of our project was extending our framework into audio classification.  The goal was
 to be able to give a HQSOM spectrograms, and have the network cluster similar genres together. 
@@ -642,7 +676,7 @@ The first step of implementation was to build a generic framework that would all
 tree type network to be constructed without hard-wiring the HQSOMs together.  Then, a test
 framework was created that allowed us to take 15 second snippets of songs, compute FFTs over windows
 that lasted $\frac{1}{10}$ of a second for each song, and puncture the FFTs such that we reduced the
-input space to a 128 dimension vector.  At the end of data processing we had the six Spectrograms
+input space to a 128 dimension vector.  At the end of data processing we had the six spectrograms
 shown in Figure $\ref{fig:FFTS}$. The data were derived from the following songs:
 \begin{enumerate}
  \item Techno (Training) - Rudenko - Everybody
@@ -652,16 +686,27 @@ shown in Figure $\ref{fig:FFTS}$. The data were derived from the following songs
  \item Classical(Training) - Unknown Orchestra Conducted By George Winston - Carol Of The Bells
  \item Classical(Testing) - Beethoven - Symphony No. 9
 \end{enumerate}
+
+\begin{figure}[ht]
+\begin{center}
+  \includegraphics[scale=.2]{./all_ffts.png}
+ % exp2_dataset.png: 813x175 pixel, 72dpi, 28.68x6.17 cm, bb=0 0 813 175
+\end{center}
+\caption{Spectrograms of Input Data For Audio Classification}
+\label{fig:FFTS}
+\end{figure}
+
 The ``Training'' tag indicates that the network was exposed to sequential samples of that song's
-FFTs in entirety, and then shown random 1 second clips from the Spectrogram in rotation with the
+FFTs in entirety, and then shown random 1 second clips from the spectrogram in rotation with the
 other Training songs. ``Testing'' songs were never exposed to the network during the training
-phase, but during the classification stage the HQSOM was asked to classify them. Unfortunately,
-every prototype network we tried with the reference SOM-RSOM implementation converged to a constant
-BMU within one or two training cycles. A network was built that consisted of two base SOM-RSOM
-nodes that take in 64 inputs each (half of the 128) and each output a BMU to a second SOM-RSOM,
-which then output their BMUs to a combined 2d vector which is used as the input to a final SOM-RSOM
-node which outputs the classification BMU (See the attached code for exact parameter details).  When
-we used this network in conjunction with our improvements we were able to get the following results:
+phase, but during the classification stage the HQSOM was asked to classify them. A network was built
+that consisted of two base SOM-RSOM nodes that take in 64 inputs each (half of the 128) and each
+output a BMU to a second SOM-RSOM, which then output their BMUs to a combined 2d vector which is
+used as the input to a final SOM-RSOM node which outputs the classification BMU (See the attached
+code for exact parameter details).  Unfortunately, the reference SOM-RSOM implementation was
+entirely unable to separate the data, resulting in a 1-classifier for this network and every
+other network that we could concieve of. When we used this network in conjunction with our
+improvements, however, we were able to get the following positive results:
 \begin{center}
 \small
 \begin{verbatim}
@@ -698,21 +743,25 @@ MODE: 1
 \end{verbatim}
 \end{center}
 
-This is the result after cycling through each training song in entirety, followed by three random 1
-second window exposures for each song, making sure to clear the HQSOM's difference matrix when
-switching songs.  The above result is not a perfect clustering of data, but it does show that the
-network formed a weak invariant representation of different genres, after only a single training
-cycle.  It is important to note that it took quite a bit of tweaking of parameters to get the above
-results, but it is a perfectly good proof of concept.
+These are the results after cycling through each training song in its entirety, followed by three
+random 1-second window exposures for each song, making sure to clear the HQSOM's difference matrix
+when switching between songs.  From them, we observe that the network has successfully separated the
+three different songs presented in the training data.  More impressively, however, it has also
+successfully classified the out-of-sample data by genre, even though these data were not even taken
+from the same songs as those in the training set.
 
-\begin{figure}[ht]
-\begin{center}
-  \includegraphics[scale=.2]{./all_ffts.png}
- % exp2_dataset.png: 813x175 pixel, 72dpi, 28.68x6.17 cm, bb=0 0 813 175
-\end{center}
-\caption{Experiment 1 Training Sequence}
-\label{fig:FFTS}
-\end{figure} 
+We note that the differences between the activation levels of the BMUs for different genres in this
+result were in some cases small, and thus that the network was close to misclassifying some of the
+data.  We also note that it took quite a bit of parameter tweaking to obtain the above results. 
+Given our limited time and computational resources, however, we consider this acceptable as a
+proof-of-concept.
+
+Using only a single training cycle, we have successfully applied an HQSOM network to form invariant
+representations of the genres of three musical pieces.  Further, we have applied these
+representations to correctly classify three additional songs to which the network had never been
+previously exposed.  We did this with no hard-coded \em a priori \em knowledge whatsoever -- the
+network obtained the sum total of its musical knowledge through exposure to a single play of each of
+the respective training songs.
 
 \section{Discussion and Conclusions}
 
@@ -728,12 +777,14 @@ never-before-seen audio data according to the highly abstract criterion of genre
 done in a fully unsupervised fashion.
 
 In performing our experiments, however, we have also identified a number of shortcomings in both the
-original HQSOM model and our improved version. We have found that the networks are highly sensitive
+original HQSOM model that persist in our improved version. We have found that the networks are
+highly sensitive
 to parameter values and to some extent initial conditions, and that they often exhibit problems with
 premature convergence. We believe these issues present promising avenues for further research, with
 a particular focus on automatically tuning system parameters based on descriptive metrics for the
-input and the sets of SOM and RSOM map units. This would effectively reduce the number of parameters
-requiring specification in the model, and would make network performance much less reliant on
+input data and the sets of SOM and RSOM map units. This would effectively reduce the number of
+parameters
+requiring specification in the model, and would make network performance much less reliant on the 
 empirical testing of configuration settings. As an example, the adaptive $\gamma$ as shown in this
 paper is a good start, but these networks must become less fragile if they are to be widely adopted.
 
@@ -748,7 +799,8 @@ promising results.
 
 The incorporation of feedback mechanisms sending information from higher regions to lower ones also
 appears as an immediate possibility for extension, and including such capabilities would provide a
-means for auto-associativity and prediction.\cite{HTMAlgo, OnIntelligence} Having already
+means for auto-associativity and prediction much like that attempted by the HTM model.\cite{HTMAlgo,
+OnIntelligence} Having already
 incorporated the property of invariance, there is considerable reason to believe that a generalized
 spatiotemporal representation algorithm with such feedback could add emergence, reification, and
 multistability to its repertoire, completing its implementation of the core principles of gestalt
@@ -758,8 +810,6 @@ formation, with the eventual goal of constructing simulated or robotic intellige
 exhibit goal-directed behaviors and learn from their interactions with the
 world.\cite{OnIntelligence} For now, however, we are pleased with our results and look forward to
 further investigation.
-
-\section{References}
 
 
 \begin{thebibliography}{}
