@@ -4,8 +4,7 @@ and wiring together the HQSOM base units into hierarchies.
 '''
 
 from som import *
-
-
+from rsom import *
 
 '''
 HQSOM base unit, comprised of a SOM feeding into an RSOM

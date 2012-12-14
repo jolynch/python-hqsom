@@ -1,4 +1,5 @@
 from som import *
+from rsom import *
 from hqsom import *
 from hqsom_audio import *
 from preproc.images import *
@@ -181,7 +182,7 @@ def test_hqsom_noise(noise_std=.1):
     assert c[3] != c[4]
 
 def test_hqsom_noise_multiple():
-    num_errors, num_tests, noise_std = 0, 100, .25
+    num_errors, num_tests, noise_std = 0, 100, .2
     for i in range(num_tests):
         try:
             test_hqsom_noise(noise_std)    
@@ -433,7 +434,6 @@ def test_audio():
         LayerConf1D(2, 1, 2, 0,
                     50, 0.2, 200,
                     20, .7, 0.15, 100, use_pure),
-        #layer 2: 4 nodes over 4 inputs each
         LayerConf1D(1, 2, 2, 0,
                     32, 0.2, 200,
                     output_size, .05, 0.2, 100, use_pure),
