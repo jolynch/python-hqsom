@@ -8,6 +8,7 @@ import getopt, sys
 import traceback
 import matplotlib.pyplot as plt
 import pickle
+import genetic_algo
 
 
 tests = ("som","rsom", "hqsom", "hqsom_noise", "hqsom_noise_multiple", "image_gen", "hqsom_77_network", "hqsom_77", "audio")
@@ -446,6 +447,7 @@ def test_audio():
                                #bottom_rsom_size,
                                #top_som_size,output_size, 
                                #use_pure_implementation = True)
+    hqsom = genetic_algo.Genome(128, output_size).to_hierarchy()
     print hqsom.layer_configs
     run_name = "AUDIO_TEST"
            
