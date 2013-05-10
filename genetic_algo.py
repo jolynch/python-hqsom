@@ -55,15 +55,21 @@ class Gene(object):
                 num_inputs,
                 random.random(),
 
-                random.randint(10, 200),
+                random.randint(10, 100),
                 random.random(),
                 random.randint(2, 500),
 
-                random.randint(num_output + 1, 200),
+                random.randint(num_output + 1, 100),
                 random.random(),
                 random.random(),
                 random.randint(2, 500)
             ]
+
+    def mutate(self, prob=.1):
+        alternative = Gene(self.data[0], self.data[1])
+        for i in range(2, len(self.data)):
+            if random.random() < prob:
+                self.data[i] = alternative.data[i]
 
     def to_config(self):
         data = self.data
@@ -111,6 +117,12 @@ class Genome(object):
         return apply(Hierarchy1D, layer_configs)
 
     def combine(self, other):
-        left, right = self.data, other.data
-        return other
+        left, right = self.genes, other.genes
+        # Allows us to do everything in terms of right transforming left
+        if random() < .5:
+            left, right = right, left
 
+    def mutate(self):
+        for gene in self.genes:
+            pass
+        pass
