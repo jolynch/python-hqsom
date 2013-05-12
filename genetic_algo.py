@@ -1,6 +1,7 @@
 import math
 import random
 import pprint
+from copy import deepcopy
 from hqsom_audio import *
 
 """
@@ -34,10 +35,15 @@ Each genome is a list of these genes, at any time the mutations can either
 change the number of genes or change the parameters of the associated layers
 """
 
+def test(prob):
+    return random.random() < prob
+
 # Stolen from stack overflow ... completely
 def factors(n):
     return list(set(reduce(list.__add__,
                       ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0))))
+
+roundable = [True, True, False, True, False, True, True, False, False, True]
 
 class Gene(object):
     def __repr__(self):
@@ -48,11 +54,13 @@ class Gene(object):
     """
     def __init__(self, num_inputs, num_output, data=None):
         if data is not None:
-            self.data = data
+            self.data = deepcopy(data)
+            self.data[0] = num_inputs
+            self.data[1] = num_output
         else:
             self.data = [
-                num_output,
                 num_inputs,
+                num_output,
                 random.random(),
 
                 random.randint(10, 100),
@@ -65,17 +73,38 @@ class Gene(object):
                 random.randint(2, 500)
             ]
 
+    def input(self):
+        return self.data[0]
+
+    def output(self):
+        return self.data[1]
+
     def mutate(self, prob=.1):
+        """
+        Returns a mutated gene, does not modify self
+        """
+        gene_data = deepcopy(self.data)
         alternative = Gene(self.data[0], self.data[1])
         for i in range(2, len(self.data)):
-            if random.random() < prob:
-                self.data[i] = alternative.data[i]
+            if test(prob):
+                gene_data[i] = alternative.data[i]
+        return Gene(self.data[0], self.data[1], gene_data)
+
+    def combine(self, other):
+        gene_data = deepcopy(self.data)
+        gene_data[1] = other.data[1]
+        for i in range(2, len(gene_data)):
+            gene_data[i] = (gene_data[i] + other.data[i]) / 2
+            if roundable[i]:
+                gene_data[i] = int(round(gene_data[i]))
+
+        return Gene(gene_data[0], gene_data[1], gene_data)
 
     def to_config(self):
         data = self.data
-        return LayerConf1D(data[0],
-                           data[1] / data[0],
-                           data[1],
+        return LayerConf1D(data[1],
+                           data[0] / data[1],
+                           data[0],
                            0,
                            data[3],
                            data[4],
@@ -85,44 +114,92 @@ class Gene(object):
                            data[8],
                            data[9])
 
-
 class Genome(object):
     def __repr__(self):
         return pprint.pformat([(self.input_size, self.output_size)] + self.genes)
 
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, genes=None):
         self.input_size = input_size
         self.output_size = output_size
-        num_layers = random.randint(1, 10)
-        """
-        # This doesn't work
-        def lfunc(x):
-            base = ((output_size/float(input_size))**(1.0/num_layers))
-            return int(math.ceil(input_size * math.pow(base, x)))
-        """
-        size = input_size
-        self.genes = []
-        while True:
-            next_size = random.choice(factors(size))
-            self.genes.append(Gene(size, next_size))
-            if next_size == 1:
-                break
-            else:
-                size = next_size
-        self.genes[-1].data[6] = output_size
+
+        if genes is None:
+            num_layers = random.randint(1, 10)
+            """
+            # This doesn't work
+            def lfunc(x):
+                base = ((output_size/float(input_size))**(1.0/num_layers))
+                return int(math.ceil(input_size * math.pow(base, x)))
+            """
+            size = input_size
+            self.genes = []
+            while True:
+                next_size = random.choice(factors(size))
+                self.genes.append(Gene(size, next_size))
+                if next_size == 1:
+                    break
+                else:
+                    size = next_size
+            # Output size of the last som should just be the overall size
+            self.genes[-1].data[6] = output_size
+        else:
+            self.genes = deepcopy(genes)
 
 
     def to_hierarchy(self):
         layer_configs = [gene.to_config() for gene in self.genes]
         return apply(Hierarchy1D, layer_configs)
 
-    def combine(self, other):
-        left, right = self.genes, other.genes
+    def combine(self, other, crossover_probability=.5):
+        """
+        Does simple crossover recombinations, if two genomes have the same I/O
+        genes, those are swapped with crossover_probability
+        """
+        left, right = deepcopy(self.genes), deepcopy(other.genes)
         # Allows us to do everything in terms of right transforming left
-        if random() < .5:
+        if test(.5):
             left, right = right, left
 
-    def mutate(self):
+
+    def mutate(self, prob=.1, prob_split=.05, prob_join=.05):
+        """
+        Mutate this genome, does three possible mutations:
+        1) Mutates the genes with some probability
+        2) Splits a gene into two genes, with the new gene being random
+        3) Joins two genes into one gene
+
+        Returns a genome that has been mutated, does not mutate genome state
+        """
+
+        # With some probability mutate genes in this genome
+        new_genes = []
         for gene in self.genes:
-            pass
-        pass
+            new_genes.append(gene.mutate(prob))
+
+        # With some probability split a gene
+        if test(prob_split):
+            splits = {}
+            for gene in new_genes:
+                gfactors = factors(gene.input())
+                potential_split = [f for f in gfactors
+                                   if f > gene.output() and
+                                   f < gene.input()]
+                if potential_split:
+                    chosen = random.choice(potential_split)
+                    splits[gene] = chosen
+
+            split_point = random.choice(splits.keys())
+            index = new_genes.index(split_point)
+            new_genes.insert(index + 1,Gene(splits[split_point], split_point.output()))
+            new_genes[index].data[1] = splits[split_point]
+        elif test(prob_join):
+            joins = {}
+            for gene in new_genes[:-1]:
+                joins[gene] = True
+
+            join_point = random.choice(joins.keys())
+            index = new_genes.index(join_point)
+            new_genes[index] = new_genes[index].combine(new_genes[index+1])
+            new_genes.pop(index+1)
+
+        return Genome(self.input_size, self.output_size, new_genes)
+
