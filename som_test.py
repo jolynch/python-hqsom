@@ -6,7 +6,7 @@ from preproc.images import *
 import preproc.audio as audio
 import getopt, sys
 import traceback
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import pickle
 import genetic_algo
 
@@ -161,7 +161,7 @@ def test_hqsom_noise(noise_std=.1):
             seq_count += 9
 
     #Re-do the test data to test on different noisy data
-    print "Generating different test data for activating"
+    print "genetic_algo.Generating different test data for activating"
     test_data = np.array([
         [0,0,0,0,0,0,0,0,0],
         [1,1,1,0,0,0,0,0,0],
@@ -237,7 +237,7 @@ def test_hqsom_77_network():
     
     
 def test_hqsom_77():
-    #Generate the test sequence, note that we must do a spiral exposure to get the
+    #genetic_algo.Generate the test sequence, note that we must do a spiral exposure to get the
     #correct temporal-spatial representations in the SOMS
     #7x7 only has one possible test (cycled twice of course)
     coord_test = {"large":[(7,0,0),(7,0,0)]}
@@ -345,7 +345,7 @@ def test_hqsom_77():
     MAP_Image(hqsom.bottom_hqsom_list[5].rsom.units,"output/{}FINAL_MIDDLE_RSOM".format(run_name)).save() 
 
 #WE ONLY SUPPORT wave files of the <b>same bitrate</b>
-def test_audio():
+def test_audio(hqsom=None):
     print "Loading songs into memory"
     song_rock = audio.Spectrogram("data/music/Californication.wav")
     song_rock2 = audio.Spectrogram("data/music/ByWay.wav")
@@ -372,10 +372,10 @@ def test_audio():
             raise Exception
         print "Found data in cache, skipping generation"
     except:
-        print "Generating ffts"
+        print "genetic_algo.Generating ffts"
         raw_data = dict([(i,None) for i in song_types])
         for (song_type, song_file) in songs:
-            print "Generating data on the fly for {} song".format(song_type)
+            print "genetic_algo.Generating data on the fly for {} song".format(song_type)
             fft_length = song_file.sample_rate * num_seconds
             #To get a power of 2
             fft_length = int(2**np.ceil(np.log(fft_length)/np.log(2)));
@@ -401,7 +401,7 @@ def test_audio():
                 
             final_data[song_type] = new_data 
         pickle.dump((num_seconds, tuple(song_types), final_data), open("cache.p","wb"))
-    
+    """ 
     plt.matshow(np.transpose(final_data["Rock"]))
     plt.title("Rock")
     plt.matshow(np.transpose(final_data["Techno"]))
@@ -414,40 +414,34 @@ def test_audio():
     plt.title("Techno_TEST_DATA")
     plt.matshow(np.transpose(final_data["RockTEST"]))
     plt.title("Rock_TEST_DATA")
-        
-    output_size = 4
-    hqsom = Hierarchy1D(
-        ## layer 1: 8 nodes over 16 inputs each
-        #LayerConf1D(8, 16,   128, 0,
-                    #40, 0.1, 1.0,
-                    #20, 0.4, 0.1, 50.0,True),
-        ###layer 2: 1 node over the 8 in layer 2
-        #LayerConf1D(1,  8,   8, 0,
-                    #40, 0.1, 1.0,
-                    #output_size, 0.1, 0.08, 2.0,True))
-         
-        #Too slow, possibly better
-        # layer 1: 16 nodes over 8 inputs each
-        # layer 1: 16 nodes over 8 inputs each
-        LayerConf1D(2, 64, 128, 0,
-                    50, 0.2, 200,
-                    40, .7, 0.15, 100, use_pure),
-        LayerConf1D(2, 1, 2, 0,
-                    50, 0.2, 200,
-                    20, .7, 0.15, 100, use_pure),
-        LayerConf1D(1, 2, 2, 0,
-                    32, 0.2, 200,
-                    output_size, .05, 0.2, 100, use_pure),
-        ## layer 3: 1 node over the 4 in layesr 2
-        #LayerConf1D(1, 2, 2, 0,
-                    #32, 0.2, 200,
-                    #output_size, 0.005, 0.01, 100, use_pure)
-                    )
+    """  
+    output_size = 5
+    if hqsom is None:
+        hqsom = Hierarchy1D(
+            LayerConf1D(2, 64, 128, 0,
+                        50, 0.2, 200,
+                        40, .7, 0.15, 100, use_pure),
+            LayerConf1D(2, 1, 2, 0,
+                        50, 0.2, 200,
+                        20, .7, 0.15, 100, use_pure),
+            LayerConf1D(1, 2, 2, 0,
+                        32, 0.2, 200,
+                        output_size, .05, 0.2, 100, use_pure),
+        )
     #hqsom = NaiveAudioClassifier(bottom_som_size,
                                #bottom_rsom_size,
                                #top_som_size,output_size, 
                                #use_pure_implementation = True)
-    hqsom = genetic_algo.Genome(128, output_size).to_hierarchy()
+    #hqsom = genetic_algo.Genome(128, output_size).to_hierarchy()
+    #genome = genetic_algo.Genome(128, 5, [genetic_algo.Gene(128, 1, [128, 1, 0.5349470927446156, 58, 0.16262059789324113, 93, 69, 0.38946495945845583, 0.18591242958088183, 449]),
+    #                         genetic_algo.Gene(1, 1, [1, 1, 0.9697823529658623, 67, 0.06338912516811035, 484, 5, 0.07069243885373111, 0.30821633466399, 312])])
+
+    #genome = genetic_algo.Genome(128, 5, [
+    #    genetic_algo.Gene(128, 1, [128, 1, 0.8191182230079156, 86, 0.13323972043189236, 175, 31, 0.3806979377580392, 0.8121811036319838, 98]),
+    #    genetic_algo.Gene(1, 1, [1, 1, 0.8727135450401478, 62, 0.3453597203536144, 121, 50, 0.755878448191539, 0.6818380459687157, 325]),
+    #    genetic_algo.Gene(1, 1, [1, 1, 0.4174074007331876, 89, 0.7549203282530946, 50, 5, 0.7849685525193116, 0.5789786448249847, 263])
+    #    ])
+    #hqsom = genome.to_hierarchy()
     print hqsom.layer_configs
     run_name = "AUDIO_TEST"
            

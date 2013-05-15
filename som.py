@@ -119,8 +119,8 @@ class SOM(object):
             # Caution: This can cause overfitting if used incorrectly
             if mse / self.mse_ema > 10:
                 self.t = 0
-                print "Unexpectedly Large Miss!! Stealing BMU {}".format(bmu_index)
-                print "Used effective sigma {} for update".format(.5)
+                #print "Unexpectedly Large Miss!! Stealing BMU {}".format(bmu_index)
+                #print "Used effective sigma {} for update".format(.5)
                 self.units[bmu_index] = self.units[bmu_index] + .5*(unit_input - self.units[bmu_index])
             self.mse_ema = max(.9*(self.mse_ema) + .1*(mse), 1e-20)
 

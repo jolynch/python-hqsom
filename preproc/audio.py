@@ -13,7 +13,7 @@ import wave
 import numpy as np
 import struct
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     print len(spectrogram)
     print np.shape(spectrogram)
     
-    plt.matshow(np.transpose(spectrogram))
-    plt.show()
+    #plt.matshow(np.transpose(spectrogram))
+    #plt.show()
     
     
     

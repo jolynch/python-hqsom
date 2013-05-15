@@ -38,7 +38,7 @@ change the number of genes or change the parameters of the associated layers
 def test(prob):
     return random.random() < prob
 
-# Stolen from stack overflow ... completely
+# Stolen from stack overflGow ... completely
 def factors(n):
     return list(set(reduce(list.__add__,
                       ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0))))
@@ -67,7 +67,7 @@ class Gene(object):
                 random.random(),
                 random.randint(2, 500),
 
-                random.randint(num_output + 1, 100),
+                random.randint(num_output + 1, num_output + 100),
                 random.random(),
                 random.random(),
                 random.randint(2, 500)
@@ -133,9 +133,12 @@ class Genome(object):
             size = input_size
             self.genes = []
             while True:
-                next_size = random.choice(factors(size))
-                self.genes.append(Gene(size, next_size))
-                if next_size == 1:
+                f = factors(size)
+                next_size = random.choice(f)
+                if next_size <= size:
+                    self.genes.append(Gene(size, next_size))
+                if len(f) <= 1:
+                # Down to just [1]
                     break
                 else:
                     size = next_size
@@ -149,15 +152,32 @@ class Genome(object):
         layer_configs = [gene.to_config() for gene in self.genes]
         return apply(Hierarchy1D, layer_configs)
 
-    def combine(self, other, crossover_probability=.5):
+    def combine(self, other, crossover_probability=1):
         """
-        Does simple crossover recombinations, if two genomes have the same I/O
-        genes, those are swapped with crossover_probability
+        Does simple crossover recombinations, a crossover point is selected
+        between the left and right genome, to the left of that point we use
+        genes from left, to the right we use from right 
         """
         left, right = deepcopy(self.genes), deepcopy(other.genes)
-        # Allows us to do everything in terms of right transforming left
-        if test(.5):
-            left, right = right, left
+        new_genes = []
+
+        if test(crossover_probability):
+            xpoint = random.randint(0, len(left)-1)
+            for i in range(xpoint):
+                new_genes.append(left[i])
+            rpoint = 0
+            while(right[rpoint].output() > left[xpoint].output()):
+                rpoint = rpoint + 1
+
+            new_genes.append(left[xpoint].combine(right[rpoint]))
+            for i in range(rpoint+1, len(right)):
+                new_genes.append(right[i])
+
+            # Output size of the last som should just be the overall size
+            new_genes[-1].data[6] = self.output_size
+
+        return Genome(self.input_size, self.output_size, new_genes)
+
 
 
     def mutate(self, prob=.1, prob_split=.05, prob_join=.05):
@@ -191,7 +211,7 @@ class Genome(object):
             index = new_genes.index(split_point)
             new_genes.insert(index + 1,Gene(splits[split_point], split_point.output()))
             new_genes[index].data[1] = splits[split_point]
-        elif test(prob_join):
+        if test(prob_join):
             joins = {}
             for gene in new_genes[:-1]:
                 joins[gene] = True
@@ -200,6 +220,9 @@ class Genome(object):
             index = new_genes.index(join_point)
             new_genes[index] = new_genes[index].combine(new_genes[index+1])
             new_genes.pop(index+1)
+
+        # Output size of the last som should just be the overall size
+        new_genes[-1].data[6] = self.output_size
 
         return Genome(self.input_size, self.output_size, new_genes)
 
