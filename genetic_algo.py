@@ -215,11 +215,11 @@ class Genome(object):
             joins = {}
             for gene in new_genes[:-1]:
                 joins[gene] = True
-
-            join_point = random.choice(joins.keys())
-            index = new_genes.index(join_point)
-            new_genes[index] = new_genes[index].combine(new_genes[index+1])
-            new_genes.pop(index+1)
+            if joins:
+                join_point = random.choice(joins.keys())
+                index = new_genes.index(join_point)
+                new_genes[index] = new_genes[index].combine(new_genes[index+1])
+                new_genes.pop(index+1)
 
         # Output size of the last som should just be the overall size
         new_genes[-1].data[6] = self.output_size
