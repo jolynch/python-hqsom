@@ -415,8 +415,8 @@ def test_audio(hqsom=None):
     plt.matshow(np.transpose(final_data["RockTEST"]))
     plt.title("Rock_TEST_DATA")
     """  
-    output_size = 5
     if hqsom is None:
+        output_size = 5
         hqsom = Hierarchy1D(
             LayerConf1D(2, 64, 128, 0,
                         50, 0.2, 200,
@@ -428,6 +428,9 @@ def test_audio(hqsom=None):
                         32, 0.2, 200,
                         output_size, .05, 0.2, 100, use_pure),
         )
+    else:
+        output_size = hqsom.output_size
+        hqsom = hqsom.to_hierarchy()
     #hqsom = NaiveAudioClassifier(bottom_som_size,
                                #bottom_rsom_size,
                                #top_som_size,output_size, 

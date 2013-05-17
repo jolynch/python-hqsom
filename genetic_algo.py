@@ -91,6 +91,10 @@ class Gene(object):
         return Gene(self.data[0], self.data[1], gene_data)
 
     def combine(self, other):
+        """
+        Combines this gene with the other, basically averaging the two
+        parameter sets and using self.input_size and other.output_size.
+        """
         gene_data = deepcopy(self.data)
         gene_data[1] = other.data[1]
         for i in range(2, len(gene_data)):
@@ -115,6 +119,10 @@ class Gene(object):
                            data[9])
 
 class Genome(object):
+    """
+    Class to represent a Genome that can be used to generate a HQSOM Layered
+    Network
+    """
     def __repr__(self):
         return pprint.pformat([(self.input_size, self.output_size)] + self.genes)
 
@@ -124,12 +132,6 @@ class Genome(object):
 
         if genes is None:
             num_layers = random.randint(1, 10)
-            """
-            # This doesn't work
-            def lfunc(x):
-                base = ((output_size/float(input_size))**(1.0/num_layers))
-                return int(math.ceil(input_size * math.pow(base, x)))
-            """
             size = input_size
             self.genes = []
             while True:
@@ -211,6 +213,8 @@ class Genome(object):
             index = new_genes.index(split_point)
             new_genes.insert(index + 1,Gene(splits[split_point], split_point.output()))
             new_genes[index].data[1] = splits[split_point]
+
+        # With some probability join a gene
         if test(prob_join):
             joins = {}
             for gene in new_genes[:-1]:
