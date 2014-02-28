@@ -161,7 +161,7 @@ def test_hqsom_noise(noise_std=.1):
             seq_count += 9
 
     #Re-do the test data to test on different noisy data
-    print "genetic_algo.Generating different test data for activating"
+    print "Generating different test data for activating"
     test_data = np.array([
         [0,0,0,0,0,0,0,0,0],
         [1,1,1,0,0,0,0,0,0],
