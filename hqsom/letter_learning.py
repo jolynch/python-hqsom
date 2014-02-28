@@ -100,7 +100,7 @@ def score_letters(genome, setup_data=None):
         return -100
 
 def setup_letters():
-    letters = "ABCD"
+    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     data = {}
     clusters = []
     for l in letters:
@@ -109,8 +109,8 @@ def setup_letters():
     np.random.seed(15717)
     for l in letters:
         noisy_letters = []
-        for i in range(9):
-            data["noisy-%s-%d" % (l, i)] = Letter(l, .3).data
+        for i in range(1):
+            data["noisy-%s-%d" % (l, i)] = Letter(l, .1).data
             noisy_letters.append("noisy-%s-%d" % (l, i))
         clusters.append(tuple(["clean-%s" % l] + noisy_letters))
 
