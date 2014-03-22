@@ -40,16 +40,16 @@ class SOM(object):
     def bmu(self, unit_input):
         """
         Calculate and return the best matching unit, which is the concept vector
-        closest to the unit input vector
+        closest to the unit input vector. Uses einsum for super speed
 
         Args:
             unit_input - The input data to examine
 
         Returns the *index* of the best matching unit in the mapspace
         """
-
-        distances = [np.linalg.norm(unit - unit_input) for unit in self.units]
-        return np.argmin(distances)
+        differences = self.units - unit_input
+        return np.argmin(np.sqrt(np.einsum('...i,...i',
+                                           differences, differences)))
 
     def nb_func(self, unit_i, unit_bmu, mse_bmu, unit_input, spread):
         """
