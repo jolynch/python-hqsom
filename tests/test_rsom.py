@@ -11,7 +11,7 @@ def test_rsom():
         rsom1.update(input_vectors[i%2], rate, spread, alpha)
     rsom1.update(input_vectors[2], rate, spread, alpha)
     rsom1.reset()
-    assert rsom1.differences[0][0] == 0
+    assert abs(rsom1.differences[0][0] - 0) < 0.01
     for i in range(3):
         print "Got MSE of {}".format(rsom1.mse(input_vectors[i]))
         print "Activation vector: {}".format(rsom1.activation_vector(input_vectors[i], True))

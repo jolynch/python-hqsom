@@ -57,7 +57,7 @@ def test_hqsom_noise(noise_std=.1):
         [0,0,1,0,0,1,0,0,1]])
     # Add in gausian noise
     noise = np.random.normal(0.0,noise_std,test_data.shape)
-    test_data = test_data + noise 
+    test_data = test_data + noise
     g1,g2,s1,s2,a = .1,.1,16,90,.1
     # Due to the noise we have to add many more map units
     hqsom = HQSOM(9,18,3, use_pure_implementation=use_pure)
@@ -65,7 +65,7 @@ def test_hqsom_noise(noise_std=.1):
         for l in range(num):
             hqsom.update(test_data[0], g1,g2,s1,s2,a)
     num_cycles, num_repeats = 25, 11
-    total_run_count, seq_count = num_cycles*num_repeats*9, 0 
+    total_run_count, seq_count = num_cycles*num_repeats*9, 0
     for j in range(num_cycles):
         for i in range(num_repeats):
             print "update {}/{}".format(seq_count,total_run_count)
@@ -92,7 +92,7 @@ def test_hqsom_noise(noise_std=.1):
     # Add in gausian noise
     noise = np.random.normal(0.0,noise_std,test_data.shape)
     test_data = test_data + noise
-    g1,g2,s1,s2,a = .1,.1,16,90,.1
+    g1,g2,s1,s2,a = .1, .1, 16, 90, .1
 
     c = [hqsom.activation_vector(t) for t in test_data]
     print c
@@ -101,8 +101,13 @@ def test_hqsom_noise(noise_std=.1):
     assert c[4] == c[5] and c[5] == c[6]
     assert c[3] != c[4]
 
-def xtest_hqsom_noise_multiple():
-    num_errors, num_tests, noise_std = 0, 100, .2
+
+def test_hqsom_noise_multiple():
+    """
+    Because there is a certain amount of non-determinism in the hqsom
+    networks, assure that we function at a high rate for high noise situations
+    """
+    num_errors, num_tests, noise_std = 0, 10, .15
     for i in range(num_tests):
         try:
             test_hqsom_noise(noise_std)
@@ -110,8 +115,3 @@ def xtest_hqsom_noise_multiple():
             num_errors += 1
     print "Passed {} out of {}".format(num_tests-num_errors, num_tests)
     assert num_errors < .25 * num_tests
-
-
-
-
-

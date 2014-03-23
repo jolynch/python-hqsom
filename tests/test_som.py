@@ -37,5 +37,3 @@ def test_improved_som():
     print "All activated units: {}".format(activated)
     print "Error: {} vs max {}".format(err, .5*len(input_vectors))
     assert err <= .5*len(input_vectors)
-
-
