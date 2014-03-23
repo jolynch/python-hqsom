@@ -36,3 +36,6 @@ nosetests.xml
 
 # Pickle files
 *.p
+
+# Vim
+*.swp

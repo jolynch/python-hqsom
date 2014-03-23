@@ -10,7 +10,7 @@ setup(
     author='Joseph Lynch',
     author_email='jolynch@mit.edu',
     url='https://github.com/jolynch/python-hqsom.git',
-    packages=find_packages(exclude=['tests', 'demos']),
+    packages=find_packages(exclude=['tests', 'demos', 'papers']),
     include_package_data=True,
     setup_requires=['setuptools'],
     install_requires=[
