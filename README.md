@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jolynch/python-hqsom.svg)](https://travis-ci.org/jolynch/python-hqsom)
+
 python-hqsom
 ============
 
